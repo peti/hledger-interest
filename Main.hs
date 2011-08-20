@@ -111,7 +111,7 @@ main = do
             , sourceAccount = srcAcc
             , targetAccount = targetAcc
             , dayCountConvention = diff30_360
-            , interestRate = perMonth 0.0553
+            , interestRate = constant 0.0553
             }
       st = IState
            { balancedUntil = nulldate
