@@ -46,7 +46,7 @@ computeInterest day = do
       newFrom = succ to
   when (to >= from && not (isZeroMixedAmount bal)) $ do
     diff <- asks dayCountConvention
-    mkTrans from ((from `diff` to) + 1) ratePerAnno
+    mkTrans to ((from `diff` to) + 1) ratePerAnno
   modify (\st -> st { balancedUntil = newFrom })
   when (newFrom < day) (computeInterest day)
 
