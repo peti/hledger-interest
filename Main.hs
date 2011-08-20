@@ -41,7 +41,7 @@ computeInterest day = do
   from <- gets balancedUntil
   bal <- gets balance
   rate <- asks interestRate
-  let (_,endOfPeriod,ratePerAnno) = rate from
+  let (endOfPeriod,ratePerAnno) = rate from
       to = min day endOfPeriod
       newFrom = succ to
   modify (\st -> st { balancedUntil = newFrom })
@@ -110,8 +110,8 @@ main = do
             { interestAccount = interestAcc
             , sourceAccount = srcAcc
             , targetAccount = targetAcc
-            , dayCountConvention = diffAct
-            , interestSpec = bgb288 -- perAnno 0.05
+            , dayCountConvention = diff30_360
+            , interestRate = perMonth 0.0553
             }
       st = IState
            { balancedUntil = nulldate
@@ -121,7 +121,6 @@ main = do
   let ((),_,ts) = runRWS (mapM_ processTransaction transactions >> computeInterest thisDay) cfg st
   mapM_ (putStr . show) ts
 
-{-
- runTest :: IO ()
- runTest = withArgs ["test.ledger", "Dept:Bank", "Expense:Interest", "Dept:Bank:Interest"] main
- -}
+runTest :: IO ()
+runTest = withArgs ["test.ledger", "Dept:Bank", "Expense:Interest", "Dept:Bank"] main
+

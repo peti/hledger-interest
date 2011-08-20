@@ -3,13 +3,13 @@ module Hledger.Interest.Rate ( Rate, perAnno, perMonth, bgb288 ) where
 import Data.Time.Calendar
 import Data.Time.Calendar.OrdinalDate
 
-type Rate = Day -> (Day,Day,Double)
+type Rate = Day -> (Day,Double)
 
 perAnno :: Double -> Rate
-perAnno rate date = (firstDayOfYear date, lastDayOfYear date, rate)
+perAnno rate date = (lastDayOfYear date, rate)
 
 perMonth :: Double -> Rate
-perMonth rate date = (firstDayOfYear date, date', rate)
+perMonth rate date = (date', rate)
   where
     date' = 16 `addDays` (lastDayOfMonth date)
 
@@ -20,7 +20,7 @@ bgb288 :: Rate
 bgb288 = basiszins (5/100)
 
 basiszins :: Double -> Rate
-basiszins r date = (from, to, (r + p))
+basiszins r date = (to, (r + p))
   where
     (from,to,p) = head (dropWhile (\(_,to',_) -> to' < date) basiszinsTable)
 
