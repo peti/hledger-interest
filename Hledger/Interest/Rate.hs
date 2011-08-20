@@ -1,17 +1,15 @@
-module Hledger.Interest.Rate ( Rate, perAnno, perMonth, bgb288 ) where
+module Hledger.Interest.Rate ( Rate, perAnno, constant, bgb288 ) where
 
 import Data.Time.Calendar
 import Data.Time.Calendar.OrdinalDate
 
 type Rate = Day -> (Day,Double)
 
-perAnno :: Double -> Rate
-perAnno rate date = (lastDayOfYear date, rate)
+constant :: Double -> Rate
+constant rate _ = (day 999999 12 31, rate)
 
-perMonth :: Double -> Rate
-perMonth rate date = (date', rate)
-  where
-    date' = 16 `addDays` (lastDayOfMonth date)
+perAnno :: Double -> Rate
+perAnno rate date = (day (fst (toOrdinalDate date)) 12 31, rate)
 
 day :: Integer -> Int -> Int -> Day
 day = fromGregorian
@@ -22,7 +20,7 @@ bgb288 = basiszins (5/100)
 basiszins :: Double -> Rate
 basiszins r date = (to, (r + p))
   where
-    (from,to,p) = head (dropWhile (\(_,to',_) -> to' < date) basiszinsTable)
+    (_,to,p) = head (dropWhile (\(_,to',_) -> to' < date) basiszinsTable)
 
 basiszinsTable :: [(Day, Day, Double)]
 basiszinsTable =
@@ -48,14 +46,3 @@ basiszinsTable =
   , (day 2011 07 01, day 2999 12 31,  37 / 10000)
   ]
 
-lastDayOfMonth :: Day -> Day
-lastDayOfMonth now = day y m (gregorianMonthLength y m) where (y,m,d) = toGregorian now
-
-firstDayOfMonth :: Day -> Day
-firstDayOfMonth now = day y m 1 where (y,m,d) = toGregorian now
-
-firstDayOfYear :: Day -> Day
-firstDayOfYear now = day (fst (toOrdinalDate now)) 1 1
-
-lastDayOfYear :: Day -> Day
-lastDayOfYear now = day (fst (toOrdinalDate now)) 12 31
