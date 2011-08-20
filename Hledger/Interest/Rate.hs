@@ -1,4 +1,4 @@
-module Hledger.Interest.Rate ( Rate, perAnno, constant, bgb288 ) where
+module Hledger.Interest.Rate ( Rate, perAnno, constant, bgb288, ingDiba ) where
 
 import Data.Time.Calendar
 import Data.Time.Calendar.OrdinalDate
@@ -44,5 +44,18 @@ basiszinsTable =
   , (day 2010 07 01, day 2010 12 31,  12 / 10000)
   , (day 2011 01 01, day 2011 06 30,  12 / 10000)
   , (day 2011 07 01, day 2999 12 31,  37 / 10000)
+  ]
+
+ingDiba :: Rate
+ingDiba date = (to, p)
+  where
+    (_,to,p) = head (dropWhile (\(_,to',_) -> to' < date) ingDibaTable)
+
+ingDibaTable :: [(Day, Day, Double)]
+ingDibaTable =
+  [ (day 2009 01 01, day 2009 12 31, 150 / 10000)
+  , (day 2010 01 01, day 2010 12 31, 150 / 10000)
+  , (day 2011 01 01, day 2011 07 14, 150 / 10000)
+  , (day 2011 07 15, day 2999 12 31, 175 / 10000)
   ]
 
