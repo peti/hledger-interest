@@ -44,10 +44,12 @@ computeInterest day = do
   let (_,endOfPeriod,ratePerAnno) = ispec from
       to = min day endOfPeriod
       newFrom = succ to
+  modify (\st -> st { balancedUntil = newFrom })
   when (to >= from && not (isZeroMixedAmount bal)) $ do
     diff <- asks dayCountConvention
-    mkTrans to ((from `diff` to) + 1) ratePerAnno
-  modify (\st -> st { balancedUntil = newFrom })
+    t <- mkTrans to ((from `diff` to) + 1) ratePerAnno
+    tell [t]
+    processTransaction t
   when (newFrom < day) (computeInterest day)
 
 daysInYear :: Day -> Computer Integer
@@ -55,7 +57,7 @@ daysInYear now = asks dayCountConvention >>= \diff -> return (day1 `diff` day2)
   where day1 = fromGregorian (fst (toOrdinalDate now)) 1 1
         day2 = fromGregorian (succ (fst (toOrdinalDate now))) 1 1
 
-mkTrans :: Day -> Integer -> Double -> Computer ()
+mkTrans :: Day -> Integer -> Double -> Computer Transaction
 mkTrans day days ratePerAnno = do
   bal <- gets balance
   srcAcc <- asks sourceAccount
@@ -90,7 +92,7 @@ mkTrans day days ratePerAnno = do
           , pmetadata      = []
           , ptransaction   = Just t
           }
-  tell [t]
+  return t
 
 showPercent :: Double -> String
 showPercent r = showWith2Digits (r * 100)
