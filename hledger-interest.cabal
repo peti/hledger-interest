@@ -13,4 +13,5 @@ Executable hledger-interest
   Main-is:              Main.hs
   Build-depends:        base >= 3 && < 5, hledger-lib >= 0.14, time, mtl
   other-modules:        Hledger.Interest.DayCountConvention
+                        Hledger.Interest.Rate
   Ghc-Options:          -Wall
