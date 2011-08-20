@@ -1,7 +1,7 @@
 module Main ( main ) where
 
 import Hledger.Interest.DayCountConvention
-import Hledger.Interest.Spec
+import Hledger.Interest.Rate
 
 import Hledger.Data
 import Hledger.Read
@@ -15,7 +15,7 @@ data Config = Config
   , sourceAccount :: AccountName
   , targetAccount :: AccountName
   , dayCountConvention :: DayCountConvention
-  , interestSpec :: Specification
+  , interestRate :: Rate
   }
 
 data InterestState = IState
@@ -40,8 +40,8 @@ computeInterest :: Day -> Computer ()
 computeInterest day = do
   from <- gets balancedUntil
   bal <- gets balance
-  ispec <- asks interestSpec
-  let (_,endOfPeriod,ratePerAnno) = ispec from
+  rate <- asks interestRate
+  let (_,endOfPeriod,ratePerAnno) = rate from
       to = min day endOfPeriod
       newFrom = succ to
   modify (\st -> st { balancedUntil = newFrom })

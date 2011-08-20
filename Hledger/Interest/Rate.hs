@@ -1,14 +1,14 @@
-module Hledger.Interest.Spec ( Specification, perAnno, perMonth, bgb288 ) where
+module Hledger.Interest.Rate ( Rate, perAnno, perMonth, bgb288 ) where
 
 import Data.Time.Calendar
 import Data.Time.Calendar.OrdinalDate
 
-type Specification = Day -> (Day,Day,Double)
+type Rate = Day -> (Day,Day,Double)
 
-perAnno :: Double -> Specification
+perAnno :: Double -> Rate
 perAnno rate date = (firstDayOfYear date, lastDayOfYear date, rate)
 
-perMonth :: Double -> Specification
+perMonth :: Double -> Rate
 perMonth rate date = (firstDayOfYear date, date', rate)
   where
     date' = 16 `addDays` (lastDayOfMonth date)
@@ -16,10 +16,10 @@ perMonth rate date = (firstDayOfYear date, date', rate)
 day :: Integer -> Int -> Int -> Day
 day = fromGregorian
 
-bgb288 :: Specification
+bgb288 :: Rate
 bgb288 = basiszins (5/100)
 
-basiszins :: Double -> Specification
+basiszins :: Double -> Rate
 basiszins r date = (from, to, (r + p))
   where
     (from,to,p) = head (dropWhile (\(_,to',_) -> to' < date) basiszinsTable)
