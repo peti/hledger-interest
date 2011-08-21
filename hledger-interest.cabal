@@ -1,5 +1,5 @@
 Name:                   hledger-interest
-Version:                1.0
+Version:                1.1
 Synopsis:               computes interest for a given account
 License:                BSD3
 License-file:           LICENSE
@@ -9,6 +9,7 @@ Homepage:               http://github.com/peti/hledger-interest
 Category:               Finance
 Build-type:             Simple
 Cabal-version:          >= 1.6
+Tested-With:            GHC == 6.12.3, GHC == 7.0.4, GHC == 7.2.1
 Description:
  hledger-interest is a small command-line utility based on Simon
  Michael's hleder library. Its purpose is to compute interest for a
