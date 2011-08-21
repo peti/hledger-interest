@@ -20,10 +20,10 @@ Description:
  the scheme mandated by the German BGB288 (Basiszins für
  Verbrauchergeschäfte). Extending support for other schemes is fairly
  easy, but currently requires changing to the source code.
-
+ .
  As an example, consider the following loan, stored in a file called
  @test.ledger@:
-
+ .
  > 2008/09/26 Loan
  >     Assets:Bank          EUR 10000.00
  >     Liabilities:Loan
@@ -39,11 +39,11 @@ Description:
  > 2010/12/10 Payment
  >     Assets:Bank          EUR -3700.00
  >     Liabilities:Loan
-
+ .
  Suppose that loan earns 5% interest per year, and payments amortize
  interest before amortizing the principal claim, then the resulting
  ledger would look like this:
-
+ .
  > $ hledger-interest --file=test.ledger --source=Expenses:Interest --target=Liabilities:Loan --30-360 --annual=0.05 Liabilities:Loan
  > 2008/09/26 Loan
  >     Assets:Bank              EUR  10000.00
@@ -84,10 +84,10 @@ Description:
  > 2010/12/31 5.00% interest for EUR -1981.58 over 21 days
  >     Liabilities:Loan         EUR     -5.78
  >     Expenses:Interest
-
+ .
  Running the utility with @--help@ gives a brief overview over the
  available options:
-
+ .
  > Usage: hledger-interest [OPTION...] ACCOUNT
  >   -h          --help            print this message and exit
  >   -V          --version         show version number and exit
