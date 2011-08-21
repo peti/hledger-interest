@@ -1,63 +1,63 @@
 2010/09/26 Loan
-    Income:Bank          EUR 101500.00
-    Dept:Bank
+    Assets:Bank          EUR 101500.00
+    Liabilities:Bank
 
 2010/10/15 Payment
-    Account             EUR -528.20
-    Dept:Bank
+    Assets:Bank          EUR -528.20
+    Liabilities:Bank
 
 2010/11/15 Payment
-    Account             EUR -834.20
-    Dept:Bank
+    Assets:Bank          EUR -834.20
+    Liabilities:Bank
 
 2010/12/15 Payment
-    Account             EUR -834.20
-    Dept:Bank
+    Assets:Bank          EUR -834.20
+    Liabilities:Bank
 
 2011/01/15 Payment
-    Account             EUR -834.20
-    Dept:Bank
+    Assets:Bank          EUR -834.20
+    Liabilities:Bank
 
 2011/02/15 Payment
-    Account             EUR -834.20
-    Dept:Bank
+    Assets:Bank          EUR -834.20
+    Liabilities:Bank
 
 2011/03/15 Payment
-    Account             EUR -834.20
-    Dept:Bank
+    Assets:Bank          EUR -834.20
+    Liabilities:Bank
 
 2011/04/15 Payment
-    Account             EUR -834.20
-    Dept:Bank
+    Assets:Bank          EUR -834.20
+    Liabilities:Bank
 
 2011/05/15 Payment
-    Account             EUR -834.20
-    Dept:Bank
+    Assets:Bank          EUR -834.20
+    Liabilities:Bank
 
 2011/06/15 Payment
-    Account             EUR -834.20
-    Dept:Bank
+    Assets:Bank          EUR -834.20
+    Liabilities:Bank
 
 2011/07/15 Payment
-    Account             EUR -834.20
-    Dept:Bank
+    Assets:Bank          EUR -834.20
+    Liabilities:Bank
 
 2011/08/15 Payment
-    Account             EUR -834.20
-    Dept:Bank
+    Assets:Bank          EUR -834.20
+    Liabilities:Bank
 
 2011/09/15 Payment
-    Account             EUR -834.20
-    Dept:Bank
+    Assets:Bank          EUR -834.20
+    Liabilities:Bank
 
 2011/10/15 Payment
-    Account             EUR -834.20
-    Dept:Bank
+    Assets:Bank          EUR -834.20
+    Liabilities:Bank
 
 2011/11/15 Payment
-    Account             EUR -834.20
-    Dept:Bank
+    Assets:Bank          EUR -834.20
+    Liabilities:Bank
 
 2011/12/15 Payment
-    Account             EUR -834.20
-    Dept:Bank
+    Assets:Bank          EUR -834.20
+    Liabilities:Bank
