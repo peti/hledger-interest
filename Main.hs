@@ -1,126 +1,86 @@
 module Main ( main ) where
 
-import Hledger.Interest.DayCountConvention
-import Hledger.Interest.Rate
-
-import Hledger.Data
+import Hledger.Interest
 import Hledger.Read
+
+import Control.Exception ( bracket )
+import System.Console.GetOpt
 import System.Environment
-import Control.Monad.RWS
-import Data.Time.Calendar.OrdinalDate
-import Numeric
+import System.Exit
+import System.IO
 
-data Config = Config
-  { interestAccount :: AccountName
-  , sourceAccount :: AccountName
-  , targetAccount :: AccountName
-  , dayCountConvention :: DayCountConvention
-  , interestRate :: Rate
+data Options = Options
+  { optVerbose     :: Bool
+  , optShowVersion :: Bool
+  , optShowHelp    :: Bool
+  , optInput       :: FilePath
+  , optSourceAcc   :: String
+  , optTargetAcc   :: String
+  , optDCC         :: Maybe DayCountConvention
+  , optRate        :: Maybe Rate
   }
 
-data InterestState = IState
-  { balancedUntil :: Day
-  , balance :: MixedAmount
+defaultOptions :: Options
+defaultOptions = Options
+  { optVerbose     = True
+  , optShowVersion = False
+  , optShowHelp    = False
+  , optInput       = ""
+  , optSourceAcc   = ""
+  , optTargetAcc   = ""
+  , optDCC         = Nothing
+  , optRate        = Nothing
   }
 
-type Computer = RWS Config [Transaction] InterestState
+options :: [OptDescr (Options -> Options)]
+options =
+ [ Option ['h'] ["help"]     (NoArg (\o -> o { optShowHelp = True }))                              "print this message and exit"
+ , Option ['V'] ["version"]  (NoArg (\o -> o { optShowVersion = True }))                           "show version number and exit"
+ , Option ['v'] ["verbose"]  (NoArg (\o -> o { optVerbose = True }))                               "echo input ledger to stdout (default)"
+ , Option ['q'] ["quiet"]    (NoArg (\o -> o { optVerbose = False }))                              "don't echo input ledger to stdout"
+ , Option ['f'] ["file"]     (ReqArg ((\f o -> o { optInput = f })) "FILE")                        "input ledger file"
+ , Option ['s'] ["source"]   (ReqArg ((\a o -> o { optSourceAcc = a })) "ACCOUNT")                 "interest source account"
+ , Option ['t'] ["target"]   (ReqArg ((\a o -> o { optTargetAcc = a })) "ACCOUNT")                 "interest target account"
+ , Option []    ["act"]      (NoArg (\o -> o { optDCC = Just diffAct }))                           "use 'act' day counting convention"
+ , Option []    ["30-360"]   (NoArg (\o -> o { optDCC = Just diff30_360 }))                        "use '30/360' day counting convention"
+ , Option []    ["constant"] (ReqArg ((\r o -> o { optRate = Just (constant (read r)) })) "RATE")  "constant interest rate"
+ , Option []    ["annual"]   (ReqArg ((\r o -> o { optRate = Just (perAnno (read r)) })) "RATE")   "annual interest rate"
+ ]
 
-processTransaction :: Transaction -> Computer ()
-processTransaction ts = do
-  let day = maybe (tdate ts) id (teffectivedate ts)
-  computeInterest day
-  interestAcc <- asks interestAccount
-  let posts = [ p | p <- tpostings ts, interestAcc == paccount p ]
-  flip mapM_ posts $ \p -> do
-    bal <- gets (amounts . balance)
-    let bal' = bal ++ amounts (pamount p)
-    modify (\st -> st { balance = normaliseMixedAmount (Mixed bal') })
+usageMessage :: String
+usageMessage = usageInfo header options
+  where header = "Usage: hledger-interest [OPTION...] ACCOUNT"
 
-computeInterest :: Day -> Computer ()
-computeInterest day = do
-  from <- gets balancedUntil
-  bal <- gets balance
-  rate <- asks interestRate
-  let (endOfPeriod,ratePerAnno) = rate from
-      to = min day endOfPeriod
-      newFrom = succ to
-  modify (\st -> st { balancedUntil = newFrom })
-  when (to >= from && not (isZeroMixedAmount bal)) $ do
-    diff <- asks dayCountConvention
-    t <- mkTrans to ((from `diff` to) + 1) ratePerAnno
-    tell [t]
-    processTransaction t
-  when (newFrom < day) (computeInterest day)
+commandLineError :: String -> IO a
+commandLineError err = do hPutStrLn stderr (err ++ usageMessage)
+                          exitFailure
 
-daysInYear :: Day -> Computer Integer
-daysInYear now = asks dayCountConvention >>= \diff -> return (day1 `diff` day2)
-  where day1 = fromGregorian (fst (toOrdinalDate now)) 1 1
-        day2 = fromGregorian (succ (fst (toOrdinalDate now))) 1 1
-
-mkTrans :: Day -> Integer -> Double -> Computer Transaction
-mkTrans day days ratePerAnno = do
-  bal <- gets balance
-  srcAcc <- asks sourceAccount
-  targetAcc <- asks targetAccount
-  perDayScalar <- daysInYear day
-  let t = Transaction
-          { tdate          = day
-          , teffectivedate = Nothing
-          , tstatus        = False
-          , tcode          = ""
-          , tdescription   = showPercent ratePerAnno ++ "% / " ++ show perDayScalar ++ " for " ++ show bal ++ " over " ++ show days ++ " days"
-          , tcomment       = ""
-          , tmetadata      = []
-          , tpostings      = [pTarget,pSource]
-          , tpreceding_comment_lines = ""
-          }
-      pTarget = Posting
-          { pstatus        = False
-          , paccount       = targetAcc
-          , pamount        = Mixed [ a { quantity = (quantity a * ratePerAnno) / fromInteger perDayScalar * fromInteger days } | a <- amounts bal ]
-          , pcomment       = ""
-          , ptype          = RegularPosting
-          , pmetadata      = []
-          , ptransaction   = Just t
-          }
-      pSource = Posting
-          { pstatus        = False
-          , paccount       = srcAcc
-          , pamount        = negate (pamount pTarget)
-          , pcomment       = ""
-          , ptype          = RegularPosting
-          , pmetadata      = []
-          , ptransaction   = Just t
-          }
-  return t
-
-showPercent :: Double -> String
-showPercent r = showWith2Digits (r * 100)
-
-showWith2Digits :: Double -> String
-showWith2Digits r = showFFloat (Just 2) r ""
+parseOpts :: [String] -> IO (Options, [String])
+parseOpts argv =
+   case getOpt Permute options argv of
+      (o,n,[]  ) -> return (foldl (flip id) defaultOptions o, n)
+      (_,_,errs) -> commandLineError (concat errs)
 
 main :: IO ()
-main = do
-  jFile:interestAcc:srcAcc:targetAcc:[] <- getArgs
-  Right jnl' <- readFile jFile >>= readJournal Nothing
+main = bracket (return ()) (\() -> hFlush stdout >> hFlush stderr) $ \() -> do
+  (opts, args) <- getArgs >>= parseOpts
+  when (null (optInput opts)) (commandLineError "required --file option is missing\n")
+  when (null (optSourceAcc opts)) (commandLineError "required --source option is missing\n")
+  when (null (optTargetAcc opts)) (commandLineError "required --target option is missing\n")
+  when (isNothing (optDCC opts)) (commandLineError "no day counting convention specified\n")
+  when (isNothing (optRate opts)) (commandLineError "no interest rate specified\n")
+  when (length args /= 1) (commandLineError "required argument ACCOUNT is missing\n")
+  let [interestAcc] = args
+  Right jnl' <- readFile (optInput opts) >>= readJournal Nothing
   let jnl = filterJournalTransactionsByAccount [interestAcc] jnl'
       transactions = sortBy (\a b -> compare (tdate a) (tdate b)) (jtxns jnl)
       cfg = Config
             { interestAccount = interestAcc
-            , sourceAccount = srcAcc
-            , targetAccount = targetAcc
-            , dayCountConvention = diff30_360
-            , interestRate = constant 0.0553
+            , sourceAccount = optSourceAcc opts
+            , targetAccount = optTargetAcc opts
+            , dayCountConvention = fromJust (optDCC opts)
+            , interestRate = fromJust (optRate opts)
             }
-      st = IState
-           { balancedUntil = nulldate
-           , balance = nullmixedamt
-           }
   thisDay <- getCurrentDay
-  let ((),_,ts) = runRWS (mapM_ processTransaction transactions >> computeInterest thisDay) cfg st
+  let ts = runComputer cfg (mapM_ processTransaction transactions >> computeInterest thisDay)
   mapM_ (putStr . show) ts
-
-runTest :: IO ()
-runTest = withArgs ["test.ledger", "Dept:Bank", "Expense:Interest", "Dept:Bank"] main
-
