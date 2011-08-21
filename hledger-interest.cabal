@@ -1,5 +1,5 @@
 Name:                   hledger-interest
-Version:                0.1
+Version:                1.0
 Synopsis:               computes interest for a given account
 License:                BSD3
 License-file:           LICENSE
@@ -11,7 +11,7 @@ Cabal-version:          >= 1.2
 
 Executable hledger-interest
   Main-is:              Main.hs
-  Build-depends:        base >= 3 && < 5, hledger-lib >= 0.14, time, mtl
+  Build-depends:        base >= 3 && < 5, hledger-lib >= 0.14, time, mtl, Cabal
   other-modules:        Hledger.Interest
                         Hledger.Interest.DayCountConvention
                         Hledger.Interest.Rate
