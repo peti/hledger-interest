@@ -34,17 +34,17 @@ defaultOptions = Options
 
 options :: [OptDescr (Options -> Options)]
 options =
- [ Option ['h'] ["help"]     (NoArg (\o -> o { optShowHelp = True }))                              "print this message and exit"
- , Option ['V'] ["version"]  (NoArg (\o -> o { optShowVersion = True }))                           "show version number and exit"
- , Option ['v'] ["verbose"]  (NoArg (\o -> o { optVerbose = True }))                               "echo input ledger to stdout (default)"
- , Option ['q'] ["quiet"]    (NoArg (\o -> o { optVerbose = False }))                              "don't echo input ledger to stdout"
- , Option ['f'] ["file"]     (ReqArg ((\f o -> o { optInput = f })) "FILE")                        "input ledger file"
- , Option ['s'] ["source"]   (ReqArg ((\a o -> o { optSourceAcc = a })) "ACCOUNT")                 "interest source account"
- , Option ['t'] ["target"]   (ReqArg ((\a o -> o { optTargetAcc = a })) "ACCOUNT")                 "interest target account"
- , Option []    ["act"]      (NoArg (\o -> o { optDCC = Just diffAct }))                           "use 'act' day counting convention"
- , Option []    ["30-360"]   (NoArg (\o -> o { optDCC = Just diff30_360 }))                        "use '30/360' day counting convention"
- , Option []    ["constant"] (ReqArg ((\r o -> o { optRate = Just (constant (read r)) })) "RATE")  "constant interest rate"
- , Option []    ["annual"]   (ReqArg ((\r o -> o { optRate = Just (perAnno (read r)) })) "RATE")   "annual interest rate"
+ [ Option ['h'] ["help"]     (NoArg (\o -> o { optShowHelp = True }))                            "print this message and exit"
+ , Option ['V'] ["version"]  (NoArg (\o -> o { optShowVersion = True }))                         "show version number and exit"
+ , Option ['v'] ["verbose"]  (NoArg (\o -> o { optVerbose = True }))                             "echo input ledger to stdout (default)"
+ , Option ['q'] ["quiet"]    (NoArg (\o -> o { optVerbose = False }))                            "don't echo input ledger to stdout"
+ , Option ['f'] ["file"]     (ReqArg (\f o -> o { optInput = f }) "FILE")                        "input ledger file"
+ , Option ['s'] ["source"]   (ReqArg (\a o -> o { optSourceAcc = a }) "ACCOUNT")                 "interest source account"
+ , Option ['t'] ["target"]   (ReqArg (\a o -> o { optTargetAcc = a }) "ACCOUNT")                 "interest target account"
+ , Option []    ["act"]      (NoArg (\o -> o { optDCC = Just diffAct }))                         "use 'act' day counting convention"
+ , Option []    ["30-360"]   (NoArg (\o -> o { optDCC = Just diff30_360 }))                      "use '30/360' day counting convention"
+ , Option []    ["constant"] (ReqArg (\r o -> o { optRate = Just (constant (read r)) }) "RATE")  "constant interest rate"
+ , Option []    ["annual"]   (ReqArg (\r o -> o { optRate = Just (perAnno (read r)) }) "RATE")   "annual interest rate"
  ]
 
 usageMessage :: String
@@ -73,7 +73,7 @@ main = bracket (return ()) (\() -> hFlush stdout >> hFlush stderr) $ \() -> do
   let [interestAcc] = args
   Right jnl' <- readFile (optInput opts) >>= readJournal Nothing
   let jnl = filterJournalTransactionsByAccount [interestAcc] jnl'
-      transactions = sortBy (\a b -> compare (tdate a) (tdate b)) (jtxns jnl)
+      transactions = sortBy (comparing tdate) (jtxns jnl)
       cfg = Config
             { interestAccount = interestAcc
             , sourceAccount = optSourceAcc opts

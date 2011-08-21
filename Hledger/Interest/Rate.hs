@@ -18,7 +18,7 @@ bgb288 :: Rate
 bgb288 = basiszins (5/100)
 
 basiszins :: Double -> Rate
-basiszins r date = (to, (r + p))
+basiszins r date = (to, r + p)
   where
     (_,to,p) = head (dropWhile (\(_,to',_) -> to' < date) basiszinsTable)
 

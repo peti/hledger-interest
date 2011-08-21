@@ -28,7 +28,7 @@ diff30_360 date1 date2 = assert (date1 <= date2) $ mkDiff30_360 (toGregorian dat
 -- as "Deutsche Zinsmethode 30 / 360".
 
 diff30E_360 :: DayCountConvention
-diff30E_360 date1 date2 = assert (date1 <= date2) $ mkDiff30_360 (y1, m1, min 30 (d1)) (y2, m2, min 30 (d2))
+diff30E_360 date1 date2 = assert (date1 <= date2) $ mkDiff30_360 (y1, m1, min 30 d1) (y2, m2, min 30 d2)
   where
     (y1,m1,d1) = toGregorian date1
     (y2,m2,d2) = toGregorian date2

@@ -43,11 +43,11 @@ nullInterestState = InterestState
 
 processTransaction :: Transaction -> Computer ()
 processTransaction ts = do
-  let day = maybe (tdate ts) id (teffectivedate ts)
+  let day = fromMaybe (tdate ts) (teffectivedate ts)
   computeInterest day
   interestAcc <- asks interestAccount
   let posts = [ p | p <- tpostings ts, interestAcc == paccount p ]
-  flip mapM_ posts $ \p -> do
+  forM_ posts $ \p -> do
     bal <- gets (amounts . balance)
     let bal' = bal ++ amounts (pamount p)
     modify (\st -> st { balance = normaliseMixedAmount (Mixed bal') })
