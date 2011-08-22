@@ -98,6 +98,6 @@ main = bracket (return ()) (\() -> hFlush stdout >> hFlush stderr) $ \() -> do
         | otherwise            = return ()
       ts' = runComputer cfg (mapM_ processTransaction ts >> finalize)
       result
-        | optVerbose opts = ts ++ ts'
+        | optVerbose opts = ts' ++ ts
         | otherwise       = ts'
   mapM_ (putStr . show) (sortBy (comparing tdate) result)
