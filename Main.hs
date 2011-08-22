@@ -29,7 +29,7 @@ defaultOptions = Options
   { optVerbose      = True
   , optShowVersion  = False
   , optShowHelp     = False
-  , optInput        = ""
+  , optInput        = "-"
   , optSourceAcc    = ""
   , optTargetAcc    = ""
   , optDCC          = Nothing
@@ -43,8 +43,8 @@ options =
  , Option ['V'] ["version"]     (NoArg (\o -> o { optShowVersion = True }))                         "show version number and exit"
  , Option ['v'] ["verbose"]     (NoArg (\o -> o { optVerbose = True }))                             "echo input ledger to stdout (default)"
  , Option ['q'] ["quiet"]       (NoArg (\o -> o { optVerbose = False }))                            "don't echo input ledger to stdout"
- , Option []    ["today"]       (NoArg (\o -> o { optBalanceToday = True }))                        "update account until today"
- , Option ['f'] ["file"]        (ReqArg (\f o -> o { optInput = f }) "FILE")                        "input ledger file"
+ , Option []    ["today"]       (NoArg (\o -> o { optBalanceToday = True }))                        "compute interest up until today"
+ , Option ['f'] ["file"]        (ReqArg (\f o -> o { optInput = f }) "FILE")                        "input ledger file (pass '-' for stdin)"
  , Option ['s'] ["source"]      (ReqArg (\a o -> o { optSourceAcc = a }) "ACCOUNT")                 "interest source account"
  , Option ['t'] ["target"]      (ReqArg (\a o -> o { optTargetAcc = a }) "ACCOUNT")                 "interest target account"
  , Option []    ["act"]         (NoArg (\o -> o { optDCC = Just diffAct }))                         "use 'act' day counting convention"
@@ -75,16 +75,19 @@ main = bracket (return ()) (\() -> hFlush stdout >> hFlush stderr) $ \() -> do
   (opts, args) <- getArgs >>= parseOpts
   when (optShowVersion opts) (putStrLn (display version) >> exitSuccess)
   when (optShowHelp opts) (putStr usageMessage >> exitSuccess)
-  when (null (optInput opts)) (commandLineError "required --file option is missing\n")
   when (null (optSourceAcc opts)) (commandLineError "required --source option is missing\n")
   when (null (optTargetAcc opts)) (commandLineError "required --target option is missing\n")
   when (isNothing (optDCC opts)) (commandLineError "no day counting convention specified\n")
   when (isNothing (optRate opts)) (commandLineError "no interest rate specified\n")
-  when (length args /= 1) (commandLineError "required argument ACCOUNT is missing\n")
+  when (length args < 1) (commandLineError "required argument ACCOUNT is missing\n")
+  when (length args > 1) (commandLineError "only one interest ACCOUNT may be specified\n")
+  input <- case optInput opts of
+             "-"  -> getContents
+             file -> readFile file
+  jnl' <- readJournal Nothing input >>= either fail return
   let [interestAcc] = args
-  Right jnl' <- readFile (optInput opts) >>= readJournal Nothing
-  let jnl = filterJournalTransactionsByAccount [interestAcc] jnl'
-      ts = sortBy (comparing tdate) (jtxns jnl)
+      jnl = filterJournalTransactionsByAccount [interestAcc] jnl'
+      ts  = sortBy (comparing tdate) (jtxns jnl)
       cfg = Config
             { interestAccount = interestAcc
             , sourceAccount = optSourceAcc opts
