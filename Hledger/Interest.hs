@@ -48,9 +48,8 @@ processTransaction ts = do
   interestAcc <- asks interestAccount
   let posts = [ p | p <- tpostings ts, interestAcc == paccount p ]
   forM_ posts $ \p -> do
-    bal <- gets (amounts . balance)
-    let bal' = bal ++ amounts (pamount p)
-    modify (\st -> st { balance = normaliseMixedAmount (Mixed bal') })
+    bal <- gets (balance)
+    modify (\st -> st { balance = normaliseMixedAmount (bal + (pamount p)) })
 
 computeInterest :: Day -> Computer ()
 computeInterest day = do
