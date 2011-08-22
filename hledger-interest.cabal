@@ -9,7 +9,8 @@ Homepage:               http://github.com/peti/hledger-interest
 Category:               Finance
 Build-type:             Simple
 Cabal-version:          >= 1.6
-Tested-With:            GHC == 6.12.3, GHC == 7.0.4, GHC == 7.2.1
+Tested-with:            GHC == 6.12.3, GHC == 7.0.4, GHC == 7.2.1
+Data-files:             README.md
 Description:
  hledger-interest is a small command-line utility based on Simon
  Michael's hleder library. Its purpose is to compute interest for a
