@@ -4,6 +4,10 @@ import Hledger.Interest
 import Hledger.Read
 
 import Control.Exception ( bracket )
+import Control.Monad
+import Data.List
+import Data.Maybe
+import Data.Ord
 import Distribution.Text ( display )
 import System.Console.GetOpt
 import System.Environment

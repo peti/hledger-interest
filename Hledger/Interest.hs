@@ -9,10 +9,12 @@ module Hledger.Interest
   )
   where
 
+import Hledger.Data
 import Hledger.Interest.DayCountConvention
 import Hledger.Interest.Rate
-import Hledger.Data
 import Control.Monad.RWS
+import Data.Maybe
+import Data.Time.Calendar
 import Data.Time.Calendar.OrdinalDate
 import Numeric
 
