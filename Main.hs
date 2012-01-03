@@ -58,6 +58,7 @@ options =
  , Option []    ["constant"]    (ReqArg (\r o -> o { optRate = Just (constant (read r)) }) "RATE")  "constant interest rate"
  , Option []    ["annual"]      (ReqArg (\r o -> o { optRate = Just (perAnno (read r)) }) "RATE")   "annual interest rate"
  , Option []    ["bgb288"]      (NoArg (\o -> o { optRate = Just bgb288, optDCC = Just diffAct }))  "compute interest according to German BGB288"
+ , Option []    ["ing-diba"]    (NoArg (\o -> o { optRate = Just ingDiba, optDCC = Just diffAct }))  "compute interest according for Ing-Diba Tagesgeld account"
  ]
 
 usageMessage :: String
