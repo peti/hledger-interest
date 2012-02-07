@@ -2,6 +2,8 @@ module Hledger.Interest.Rate ( Rate, perAnno, constant, bgb288, ingDiba ) where
 
 import Data.Time.Calendar
 import Data.Time.Calendar.OrdinalDate
+import Hledger.Data.Dates
+import Text.ParserCombinators.Parsec
 import Data.Decimal
 
 type Rate = Day -> (Day,Decimal)
@@ -59,3 +61,35 @@ ingDibaTable =
   , (day 2011 01 01, day 2011 07 14, 150 / 10000)
   , (day 2011 07 15, day 2999 12 31, 175 / 10000)
   ]
+
+pInterestTable :: GenParser Char st [(Day,Decimal)]
+pInterestTable = sepEndBy1 pInterestTableLine newline
+
+pInterestTableLine :: GenParser Char st (Day,Decimal)
+pInterestTableLine = do
+  day <- pIsoDate
+  _ <- skipMany (oneOf " \t")
+  rate <- pDecimal
+  _ <- skipMany (oneOf " \t")
+  return (day,rate)
+
+pIsoDate :: GenParser Char st Day
+pIsoDate = do
+  y <- many1 digit
+  failIfInvalidYear y
+  _ <- pDateSep
+  m <- many1 digit
+  failIfInvalidMonth m
+  _ <- pDateSep
+  d <- many1 digit
+  failIfInvalidDay d
+  return (fromGregorian (read y) (read m) (read d))
+
+pDateSep :: GenParser Char st Char
+pDateSep = oneOf "/-."
+
+pDecimal :: GenParser Char st Decimal
+pDecimal = do
+  num <- many1 digit
+  frac <- option "0" (char '.' >> many1 digit)
+  return (read (num ++ "." ++ frac))
