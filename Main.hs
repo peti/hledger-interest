@@ -56,7 +56,6 @@ options =
  , Option []    ["30-360"]      (NoArg (\o -> o { optDCC = Just diff30_360 }))                      "use '30/360' day counting convention"
  , Option []    ["30E-360"]     (NoArg (\o -> o { optDCC = Just diff30E_360 }))                     "use '30E/360' day counting convention"
  , Option []    ["30E-360isda"] (NoArg (\o -> o { optDCC = Just diff30E_360isda }))                 "use '30E/360isda' day counting convention"
- , Option []    ["constant"]    (ReqArg (\r o -> o { optRate = Just (constant (read r)) }) "RATE")  "constant interest rate"
  , Option []    ["annual"]      (ReqArg (\r o -> o { optRate = Just (perAnno (read r)) }) "RATE")   "annual interest rate"
  , Option []    ["bgb288"]      (NoArg (\o -> o { optRate = Just bgb288, optDCC = Just diffAct }))  "compute interest according to German BGB288"
  , Option []    ["ing-diba"]    (NoArg (\o -> o { optRate = Just ingDiba, optDCC = Just diffAct })) "compute interest according for Ing-Diba Tagesgeld account"
