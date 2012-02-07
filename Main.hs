@@ -14,6 +14,7 @@ import System.Console.GetOpt
 import System.Environment
 import System.Exit
 import System.IO
+import System.IO.Unsafe
 
 import Paths_hledger_interest ( version )
 
@@ -49,6 +50,7 @@ options =
  , Option ['v'] ["verbose"]     (NoArg (\o -> o { optVerbose = True }))                             "echo input ledger to stdout (default)"
  , Option ['q'] ["quiet"]       (NoArg (\o -> o { optVerbose = False }))                            "don't echo input ledger to stdout"
  , Option []    ["today"]       (NoArg (\o -> o { optBalanceToday = True }))                        "compute interest up until today"
+ , Option ['r'] ["rate"]        (ReqArg (\f o -> o { optRate = Just (unsafePerformIO (parseInterestRateFile f)) }) "FILE")  "interest rate table to use"
  , Option ['f'] ["file"]        (ReqArg (\f o -> o { optInput = f }) "FILE")                        "input ledger file (pass '-' for stdin)"
  , Option ['s'] ["source"]      (ReqArg (\a o -> o { optSourceAcc = a }) "ACCOUNT")                 "interest source account"
  , Option ['t'] ["target"]      (ReqArg (\a o -> o { optTargetAcc = a }) "ACCOUNT")                 "interest target account"
@@ -57,8 +59,6 @@ options =
  , Option []    ["30E-360"]     (NoArg (\o -> o { optDCC = Just diff30E_360 }))                     "use '30E/360' day counting convention"
  , Option []    ["30E-360isda"] (NoArg (\o -> o { optDCC = Just diff30E_360isda }))                 "use '30E/360isda' day counting convention"
  , Option []    ["annual"]      (ReqArg (\r o -> o { optRate = Just (perAnno (read r)) }) "RATE")   "annual interest rate"
- , Option []    ["bgb288"]      (NoArg (\o -> o { optRate = Just bgb288, optDCC = Just diffAct }))  "compute interest according to German BGB288"
- , Option []    ["ing-diba"]    (NoArg (\o -> o { optRate = Just ingDiba, optDCC = Just diffAct })) "compute interest according for Ing-Diba Tagesgeld account"
  ]
 
 usageMessage :: String
