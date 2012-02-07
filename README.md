@@ -27,7 +27,6 @@ running "`hleder-interest --help`":
                   --30-360          use '30/360' day counting convention
                   --30E-360         use '30E/360' day counting convention
                   --30E-360isda     use '30E/360isda' day counting convention
-                  --constant=RATE   constant interest rate
                   --annual=RATE     annual interest rate
                   --bgb288          compute interest according to German BGB288
 
