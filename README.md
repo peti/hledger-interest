@@ -147,7 +147,7 @@ Let's assume that customer ACME is supposed to pay 35 Euro by
 2010/09/15, but the money actually arrives almost half a year late:
 
     2010/09/15 Services rendered to Customer ACME
-        ACME                            EUR -35.00  ; 1 hour @ EUR 35.00
+        ACME                            1 hour @ EUR 35.00
         Receivable:ACME
 
     2011/03/17 ACME
