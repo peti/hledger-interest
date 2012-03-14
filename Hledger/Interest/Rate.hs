@@ -2,7 +2,7 @@ module Hledger.Interest.Rate ( Rate, perAnno, parseInterestRateFile ) where
 
 import Data.Time.Calendar
 import Data.Time.Calendar.OrdinalDate
-import Hledger.Data.Dates
+import Hledger.Data.Dates ( failIfInvalidYear, failIfInvalidMonth, failIfInvalidDay )
 import Text.ParserCombinators.Parsec
 import Data.Decimal
 
@@ -27,11 +27,11 @@ pInterestTable = sepEndBy1 pInterestTableLine newline
 
 pInterestTableLine :: GenParser Char st (Day,Decimal)
 pInterestTableLine = do
-  day <- pIsoDate
+  d <- pIsoDate
   _ <- skipMany (oneOf " \t")
   rate <- pDecimal
   _ <- skipMany (oneOf " \t")
-  return (day,rate)
+  return (d,rate)
 
 pIsoDate :: GenParser Char st Day
 pIsoDate = do
