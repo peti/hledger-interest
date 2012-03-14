@@ -15,15 +15,20 @@ day :: Integer -> Int -> Int -> Day
 day = fromGregorian
 
 parseInterestRateFile :: SourceName -> IO Rate
-parseInterestRateFile source = do
+parseInterestRateFile = fmap table2rate . parseInterestRateTable
+
+parseInterestRateTable :: SourceName -> IO [(Day,Decimal)]
+parseInterestRateTable source = do
   buf <- readFile source
-  either (fail . show) (return . table2rate) (parse pInterestTable source buf)
+  either (fail . show) return (parse pInterestTable source buf)
 
 table2rate :: [(Day,Decimal)] -> Rate
+table2rate [] _     = error "HLedger.Interest.Rate.table2rate cannot be used with an empty table"
 table2rate irt date =
-  case dropWhile (\(to,_) -> to < date) irt of
-    ((_,r):(to,_):_) -> ((-1)`addDays`to,r)
-    _                -> (day 999999 12 31,snd (last irt))
+  case irt of
+    (d1,r1):(d2,r2):ds  -> if d1 <= date && d2 > date then ((-1) `addDays` d2,r1) else table2rate ((d2,r2):ds) date
+    (_,r):[]            -> perAnno r date
+    []                  -> error "HLedger.Interest.Rate.table2rate: the impossible case has happened"
 
 pInterestTable :: GenParser Char st [(Day,Decimal)]
 pInterestTable = sepEndBy1 pInterestTableLine newline
