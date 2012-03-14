@@ -45,20 +45,20 @@ defaultOptions = Options
 
 options :: [OptDescr (Options -> Options)]
 options =
- [ Option ['h'] ["help"]        (NoArg (\o -> o { optShowHelp = True }))                            "print this message and exit"
- , Option ['V'] ["version"]     (NoArg (\o -> o { optShowVersion = True }))                         "show version number and exit"
- , Option ['v'] ["verbose"]     (NoArg (\o -> o { optVerbose = True }))                             "echo input ledger to stdout (default)"
- , Option ['q'] ["quiet"]       (NoArg (\o -> o { optVerbose = False }))                            "don't echo input ledger to stdout"
- , Option []    ["today"]       (NoArg (\o -> o { optBalanceToday = True }))                        "compute interest up until today"
- , Option ['r'] ["rate"]        (ReqArg (\f o -> o { optRate = Just (unsafePerformIO (parseInterestRateFile f)) }) "FILE")  "interest rate table to use"
- , Option ['f'] ["file"]        (ReqArg (\f o -> o { optInput = f }) "FILE")                        "input ledger file (pass '-' for stdin)"
- , Option ['s'] ["source"]      (ReqArg (\a o -> o { optSourceAcc = a }) "ACCOUNT")                 "interest source account"
- , Option ['t'] ["target"]      (ReqArg (\a o -> o { optTargetAcc = a }) "ACCOUNT")                 "interest target account"
- , Option []    ["act"]         (NoArg (\o -> o { optDCC = Just diffAct }))                         "use 'act' day counting convention"
- , Option []    ["30-360"]      (NoArg (\o -> o { optDCC = Just diff30_360 }))                      "use '30/360' day counting convention"
- , Option []    ["30E-360"]     (NoArg (\o -> o { optDCC = Just diff30E_360 }))                     "use '30E/360' day counting convention"
- , Option []    ["30E-360isda"] (NoArg (\o -> o { optDCC = Just diff30E_360isda }))                 "use '30E/360isda' day counting convention"
- , Option []    ["annual"]      (ReqArg (\r o -> o { optRate = Just (perAnno (read r)) }) "RATE")   "annual interest rate"
+ [ Option "h" ["help"]        (NoArg (\o -> o { optShowHelp = True }))                            "print this message and exit"
+ , Option "V" ["version"]     (NoArg (\o -> o { optShowVersion = True }))                         "show version number and exit"
+ , Option "v" ["verbose"]     (NoArg (\o -> o { optVerbose = True }))                             "echo input ledger to stdout (default)"
+ , Option "q" ["quiet"]       (NoArg (\o -> o { optVerbose = False }))                            "don't echo input ledger to stdout"
+ , Option ""  ["today"]       (NoArg (\o -> o { optBalanceToday = True }))                        "compute interest up until today"
+ , Option "r" ["rate"]        (ReqArg (\f o -> o { optRate = Just (unsafePerformIO (parseInterestRateFile f)) }) "FILE")  "interest rate table to use"
+ , Option "f" ["file"]        (ReqArg (\f o -> o { optInput = f }) "FILE")                        "input ledger file (pass '-' for stdin)"
+ , Option "s" ["source"]      (ReqArg (\a o -> o { optSourceAcc = a }) "ACCOUNT")                 "interest source account"
+ , Option "t" ["target"]      (ReqArg (\a o -> o { optTargetAcc = a }) "ACCOUNT")                 "interest target account"
+ , Option ""  ["act"]         (NoArg (\o -> o { optDCC = Just diffAct }))                         "use 'act' day counting convention"
+ , Option ""  ["30-360"]      (NoArg (\o -> o { optDCC = Just diff30_360 }))                      "use '30/360' day counting convention"
+ , Option ""  ["30E-360"]     (NoArg (\o -> o { optDCC = Just diff30E_360 }))                     "use '30E/360' day counting convention"
+ , Option ""  ["30E-360isda"] (NoArg (\o -> o { optDCC = Just diff30E_360isda }))                 "use '30E/360isda' day counting convention"
+ , Option ""  ["annual"]      (ReqArg (\r o -> o { optRate = Just (perAnno (read r)) }) "RATE")   "annual interest rate"
  ]
 
 usageMessage :: String
