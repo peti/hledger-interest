@@ -20,7 +20,10 @@ parseInterestRateFile source = do
   either (fail . show) (return . table2rate) (parse pInterestTable source buf)
 
 table2rate :: [(Day,Decimal)] -> Rate
-table2rate irt date  = last (takeWhile (\(to,_) -> to < date) irt)
+table2rate irt date =
+  case dropWhile (\(to,_) -> to < date) irt of
+    ((_,r):(to,_):_) -> ((-1)`addDays`to,r)
+    _                -> (day 999999 12 31,snd (last irt))
 
 pInterestTable :: GenParser Char st [(Day,Decimal)]
 pInterestTable = sepEndBy1 pInterestTableLine newline
