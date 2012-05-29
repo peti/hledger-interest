@@ -2,7 +2,7 @@ module Hledger.Interest.Rate ( Rate, perAnno, parseInterestRateFile ) where
 
 import Data.Time.Calendar
 import Data.Time.Calendar.OrdinalDate
-import Hledger.Data.Dates ( failIfInvalidYear, failIfInvalidMonth, failIfInvalidDay )
+import Hledger.Data.Dates ( failIfInvalidYear )
 import Text.ParserCombinators.Parsec
 import Data.Decimal
 
@@ -47,10 +47,10 @@ pIsoDate = do
   failIfInvalidYear y
   _ <- pDateSep
   m <- many1 digit
-  failIfInvalidMonth m
+  -- failIfInvalidMonth m
   _ <- pDateSep
   d <- many1 digit
-  failIfInvalidDay d
+  -- failIfInvalidDay d
   return (fromGregorian (read y) (read m) (read d))
 
 pDateSep :: GenParser Char st Char
