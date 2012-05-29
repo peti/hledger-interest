@@ -2,6 +2,7 @@ module Main ( main ) where
 
 import Hledger.Interest
 import Hledger.Read
+import Hledger.Query
 
 import Control.Exception ( bracket )
 import Control.Monad
@@ -86,12 +87,9 @@ main = bracket (return ()) (\() -> hFlush stdout >> hFlush stderr) $ \() -> do
   when (isNothing (optRate opts)) (commandLineError "no interest rate specified\n")
   when (length args < 1) (commandLineError "required argument ACCOUNT is missing\n")
   when (length args > 1) (commandLineError "only one interest ACCOUNT may be specified\n")
-  input <- case optInput opts of
-             "-"  -> getContents
-             file -> readFile file
-  jnl' <- readJournal Nothing input >>= either fail return
+  jnl' <- readJournalFile Nothing Nothing (optInput opts) >>= either fail return
   let [interestAcc] = args
-      jnl = filterJournalTransactionsByAccount [interestAcc] jnl'
+      jnl = filterJournalTransactions (Acct interestAcc) jnl'
       ts  = sortBy (comparing tdate) (jtxns jnl)
       cfg = Config
             { interestAccount = interestAcc

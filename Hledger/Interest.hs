@@ -85,11 +85,11 @@ mkTrans day days ratePerAnno = do
           , teffectivedate = Nothing
           , tstatus        = False
           , tcode          = ""
-          , tdescription   = showPercent ratePerAnno ++ "% interest for " ++ show bal ++ " over " ++ show days ++ " days"
+          , tdescription   = showPercent ratePerAnno ++ "% interest for " ++ showMixedAmount bal ++ " over " ++ show days ++ " days"
           , tcomment       = ""
-          , tmetadata      = []
           , tpostings      = [pTarget,pSource]
           , tpreceding_comment_lines = ""
+          , ttags          = []
           }
       pTarget = Posting
           { pstatus        = False
@@ -97,8 +97,8 @@ mkTrans day days ratePerAnno = do
           , pamount        = Mixed [ a { quantity = (quantity a * ratePerAnno) / fromInteger perDayScalar * fromInteger days } | a <- amounts bal ]
           , pcomment       = ""
           , ptype          = RegularPosting
-          , pmetadata      = []
           , ptransaction   = Just t
+          , ptags          = []
           }
       pSource = Posting
           { pstatus        = False
@@ -106,8 +106,8 @@ mkTrans day days ratePerAnno = do
           , pamount        = negate (pamount pTarget)
           , pcomment       = ""
           , ptype          = RegularPosting
-          , pmetadata      = []
           , ptransaction   = Just t
+          , ptags          = []
           }
   return t
 
