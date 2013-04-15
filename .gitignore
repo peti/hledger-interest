@@ -1,3 +1,4 @@
 # ignore built files
 
+/cabal-dev/*
 /dist/*
