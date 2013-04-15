@@ -45,7 +45,7 @@ nullInterestState = InterestState
 
 processTransaction :: Transaction -> Computer ()
 processTransaction ts = do
-  let day = fromMaybe (tdate ts) (teffectivedate ts)
+  let day = fromMaybe (tdate ts) (tdate2 ts)
   computeInterest day
   interestAcc <- asks interestAccount
   let posts = [ p | p <- tpostings ts, interestAcc == paccount p ]
@@ -82,7 +82,7 @@ mkTrans day days ratePerAnno = do
   perDayScalar <- daysInYear day
   let t = Transaction
           { tdate          = day
-          , teffectivedate = Nothing
+          , tdate2         = Nothing
           , tstatus        = False
           , tcode          = ""
           , tdescription   = showPercent ratePerAnno ++ "% interest for " ++ showMixedAmount bal ++ " over " ++ show days ++ " days"
@@ -92,7 +92,9 @@ mkTrans day days ratePerAnno = do
           , ttags          = []
           }
       pTarget = Posting
-          { pstatus        = False
+          { pdate          = Nothing
+          , pdate2         = Nothing
+          , pstatus        = False
           , paccount       = targetAcc
           , pamount        = Mixed [ a { aquantity = (aquantity a * ratePerAnno) / fromInteger perDayScalar * fromInteger days } | a <- amounts bal ]
           , pcomment       = ""
@@ -101,7 +103,9 @@ mkTrans day days ratePerAnno = do
           , ptags          = []
           }
       pSource = Posting
-          { pstatus        = False
+          { pdate          = Nothing
+          , pdate2         = Nothing
+          , pstatus        = False
           , paccount       = srcAcc
           , pamount        = negate (pamount pTarget)
           , pcomment       = ""
