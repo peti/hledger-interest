@@ -6,7 +6,6 @@
 
 let
   version = src.gitTag;
-  versionSuffix = "";
   genAttrs = (import <nixpkgs> { }).lib.genAttrs;
 in
 rec {
@@ -16,7 +15,7 @@ rec {
       haskellPackages = pkgs.lib.getAttrFromPath ["haskellPackages_${ghcVer}"] pkgs;
     in
     pkgs.releaseTools.nixBuild {
-      name = "hledger-interest";
+      name = "hledger-interest-${version}";
       src = src;
       buildInputs = with haskellPackages; [
         ghc cabalDev cabalInstall
