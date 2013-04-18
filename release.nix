@@ -6,17 +6,20 @@
 }:
 
 let
-  pkgs = import <nixpkgs> { };
   version = src.gitTag;
   versionSuffix = "";
+  genAttrs = (import <nixpkgs> { }).lib.genAttrs;
 in
 rec {
-  build = pkgs.lib.genAttrs [ "x86_64-linux" ] (system:
-    let pkgs = import <nixpkgs> { inherit system; }; in
+  build = genAttrs [ "ghc742" "ghc762" ] (ghcVer: genAttrs [ "x86_64-linux" ] (system:
+    let
+      pkgs = import <nixpkgs> { inherit system; };
+      haskellPackages = pkgs.lib.getAttrFromPath ["haskellPackages_${ghcVer}"] pkgs;
+    in
     pkgs.releaseTools.nixBuild {
       name = "hledger-interest";
       src = src;
-      buildInputs = with pkgs.haskellPackages_ghc762; [
+      buildInputs = with haskellPackages; [
         ghc cabalDev cabalInstall
         cmdargs csv mtl parsec prettyShow regexCompat regexpr safe split
         time transformers utf8String HUnit
@@ -31,5 +34,5 @@ rec {
       buildPhase = "cabal-dev build";
       installPhase = "cabal-dev install";
       checkPhase = "cabal-dev test";
-    });
+    }));
 }
