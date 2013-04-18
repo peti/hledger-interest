@@ -2,7 +2,6 @@
 
 { src ? { outPath = ./.; revCount = 0; gitTag = "dirty"; }
 , hledgerSrc ? { outPath = ../hledger; revCount = 0; gitTag = "dirty"; }
-, officialRelease ? false
 }:
 
 let
