@@ -1,4 +1,5 @@
 # ignore built files
 
-/cabal-dev/*
+/.cabal-sandbox/*
+/cabal.sandbox.config
 /dist/*
