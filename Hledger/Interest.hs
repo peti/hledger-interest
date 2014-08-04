@@ -101,6 +101,7 @@ mkTrans day days ratePerAnno = do
           , ptype          = RegularPosting
           , ptransaction   = Just t
           , ptags          = []
+          , pbalanceassertion = Nothing
           }
       pSource = Posting
           { pdate          = Nothing
@@ -112,6 +113,7 @@ mkTrans day days ratePerAnno = do
           , ptype          = RegularPosting
           , ptransaction   = Just t
           , ptags          = []
+          , pbalanceassertion = Nothing
           }
   return t
 
