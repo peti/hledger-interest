@@ -27,63 +27,63 @@ Description:
  .
  > 2008/09/26 Loan
  >     Assets:Bank          EUR 10000.00
- >     Liabilities:Loan
+ >     Liabilities:Bank
  >
  > 2008/11/27 Payment
  >     Assets:Bank          EUR -3771.12
- >     Liabilities:Loan
+ >     Liabilities:Bank
  >
  > 2009/05/03 Payment
  >     Assets:Bank          EUR -1200.00
- >     Liabilities:Loan
+ >     Liabilities:Bank
  >
  > 2010/12/10 Payment
  >     Assets:Bank          EUR -3700.00
- >     Liabilities:Loan
+ >     Liabilities:Bank
  .
  Suppose that loan earns 5% interest per year, and payments amortize
  interest before amortizing the principal claim, then the resulting
  ledger would look like this:
  .
- > $ hledger-interest --file=test.ledger --source=Expenses:Interest --target=Liabilities:Loan --30-360 --annual=0.05 Liabilities:Loan
+ > $ hledger-interest --file=test.ledger --source=Expenses:Interest --target=Liabilities:Bank --30-360 --annual=0.05 Liabilities:Bank
  > 2008/09/26 Loan
  >     Assets:Bank              EUR  10000.00
- >     Liabilities:Loan
+ >     Liabilities:Bank
  >
  > 2008/11/27 Payment
  >     Assets:Bank              EUR  -3771.12
- >     Liabilities:Loan
+ >     Liabilities:Bank
  >
  > 2008/11/27 5.00% interest for EUR -10000.00 over 61 days
- >     Liabilities:Loan         EUR    -84.72
+ >     Liabilities:Bank         EUR    -84.72
  >     Expenses:Interest
  >
  > 2008/12/31 5.00% interest for EUR -6313.60 over 34 days
- >     Liabilities:Loan         EUR    -29.81
+ >     Liabilities:Bank         EUR    -29.81
  >     Expenses:Interest
  >
  > 2009/05/03 Payment
  >     Assets:Bank              EUR  -1200.00
- >     Liabilities:Loan
+ >     Liabilities:Bank
  >
  > 2009/05/03 5.00% interest for EUR -6343.42 over 123 days
- >     Liabilities:Loan         EUR   -108.37
+ >     Liabilities:Bank         EUR   -108.37
  >     Expenses:Interest
  >
  > 2009/12/31 5.00% interest for EUR -5251.78 over 238 days
- >     Liabilities:Loan         EUR   -173.60
+ >     Liabilities:Bank         EUR   -173.60
  >     Expenses:Interest
  >
  > 2010/12/10 Payment
  >     Assets:Bank              EUR  -3700.00
- >     Liabilities:Loan
+ >     Liabilities:Bank
  >
  > 2010/12/10 5.00% interest for EUR -5425.38 over 340 days
- >     Liabilities:Loan         EUR   -256.20
+ >     Liabilities:Bank         EUR   -256.20
  >     Expenses:Interest
  >
  > 2010/12/31 5.00% interest for EUR -1981.58 over 21 days
- >     Liabilities:Loan         EUR     -5.78
+ >     Liabilities:Bank         EUR     -5.78
  >     Expenses:Interest
  .
  Running the utility with @--help@ gives a brief overview over the
@@ -112,7 +112,7 @@ Source-Repository head
 
 Executable hledger-interest
   Main-is:              Main.hs
-  Build-depends:        base >= 3 && < 5, hledger-lib >= 0.23.98, time, mtl, Cabal
+  Build-depends:        base >= 3 && < 5, hledger-lib >= 0.23.98, time, mtl, Cabal, Decimal
   other-modules:        Hledger.Interest
                         Hledger.Interest.DayCountConvention
                         Hledger.Interest.Rate
