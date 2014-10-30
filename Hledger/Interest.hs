@@ -16,7 +16,7 @@ import Control.Monad.RWS
 import Data.Maybe
 import Data.Time.Calendar
 import Data.Time.Calendar.OrdinalDate
-import Numeric
+import Data.Decimal
 
 type Computer = RWS Config [Transaction] InterestState
 
@@ -74,51 +74,30 @@ daysInYear now = asks dayCountConvention >>= \diff -> return (day1 `diff` day2)
   where day1 = fromGregorian (fst (toOrdinalDate now)) 1 1
         day2 = fromGregorian (succ (fst (toOrdinalDate now))) 1 1
 
-mkTrans :: Day -> Integer -> Double -> Computer Transaction
+mkTrans :: Day -> Integer -> Decimal -> Computer Transaction
 mkTrans day days ratePerAnno = do
   bal <- gets balance
   srcAcc <- asks sourceAccount
   targetAcc <- asks targetAccount
   perDayScalar <- daysInYear day
-  let t = Transaction
+  let t = nulltransaction
           { tdate          = day
-          , tdate2         = Nothing
-          , tstatus        = False
-          , tcode          = ""
-          , tdescription   = showPercent ratePerAnno ++ "% interest for " ++ showMixedAmount bal ++ " over " ++ show days ++ " days"
-          , tcomment       = ""
+          , tdescription   = showPercent ratePerAnno ++ " interest for " ++ showMixedAmount bal ++ " over " ++ show days ++ " days"
           , tpostings      = [pTarget,pSource]
-          , tpreceding_comment_lines = ""
-          , ttags          = []
           }
-      pTarget = Posting
-          { pdate          = Nothing
-          , pdate2         = Nothing
-          , pstatus        = False
-          , paccount       = targetAcc
+      pTarget = nullposting
+          { paccount       = targetAcc
           , pamount        = Mixed [ a { aquantity = (aquantity a * ratePerAnno) / fromInteger perDayScalar * fromInteger days } | a <- amounts bal ]
-          , pcomment       = ""
           , ptype          = RegularPosting
           , ptransaction   = Just t
-          , ptags          = []
-          , pbalanceassertion = Nothing
           }
-      pSource = Posting
-          { pdate          = Nothing
-          , pdate2         = Nothing
-          , pstatus        = False
-          , paccount       = srcAcc
+      pSource = nullposting
+          { paccount       = srcAcc
           , pamount        = negate (pamount pTarget)
-          , pcomment       = ""
           , ptype          = RegularPosting
           , ptransaction   = Just t
-          , ptags          = []
-          , pbalanceassertion = Nothing
           }
   return t
 
-showPercent :: Double -> String
-showPercent r = showWith2Digits (r * 100)
-
-showWith2Digits :: Double -> String
-showWith2Digits r = showFFloat (Just 2) r ""
+showPercent :: Decimal -> String
+showPercent r = shows r "%"

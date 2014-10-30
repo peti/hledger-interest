@@ -2,13 +2,14 @@ module Hledger.Interest.Rate ( Rate, perAnno, constant, bgb288, ingDiba ) where
 
 import Data.Time.Calendar
 import Data.Time.Calendar.OrdinalDate
+import Data.Decimal
 
-type Rate = Day -> (Day,Double)
+type Rate = Day -> (Day,Decimal)
 
-constant :: Double -> Rate
+constant :: Decimal -> Rate
 constant rate _ = (day 999999 12 31, rate)
 
-perAnno :: Double -> Rate
+perAnno :: Decimal -> Rate
 perAnno rate date = (day (fst (toOrdinalDate date)) 12 31, rate)
 
 day :: Integer -> Int -> Int -> Day
@@ -17,12 +18,12 @@ day = fromGregorian
 bgb288 :: Rate
 bgb288 = basiszins (5/100)
 
-basiszins :: Double -> Rate
+basiszins :: Decimal -> Rate
 basiszins r date = (to, r + p)
   where
     (_,to,p) = head (dropWhile (\(_,to',_) -> to' < date) basiszinsTable)
 
-basiszinsTable :: [(Day, Day, Double)]
+basiszinsTable :: [(Day, Day, Decimal)]
 basiszinsTable =
   [ (day 2002 01 01, day 2002 06 30, 257 / 10000)
   , (day 2002 07 01, day 2002 12 31, 247 / 10000)
@@ -51,7 +52,7 @@ ingDiba date = (to, p)
   where
     (_,to,p) = head (dropWhile (\(_,to',_) -> to' < date) ingDibaTable)
 
-ingDibaTable :: [(Day, Day, Double)]
+ingDibaTable :: [(Day, Day, Decimal)]
 ingDibaTable =
   [ (day 2009 01 01, day 2009 12 31, 150 / 10000)
   , (day 2010 01 01, day 2010 12 31, 150 / 10000)
