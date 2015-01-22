@@ -2,7 +2,7 @@ hledger-interest
 ================
 
 hledger-interest is a small command-line utility based on [Simon
-Michael's hleder library](http://hledger.org/). Its purpose is to
+Michael's hlegder library](http://hledger.org/). Its purpose is to
 compute interest for a given ledger account. Using command line flags,
 the program can be configured to use various [day counting
 conventions](http://en.wikipedia.org/wiki/Day_count_convention), such as
