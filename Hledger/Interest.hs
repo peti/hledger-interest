@@ -12,11 +12,13 @@ module Hledger.Interest
 import Hledger.Data
 import Hledger.Interest.DayCountConvention
 import Hledger.Interest.Rate
+
 import Control.Monad.RWS
+import Data.Decimal
 import Data.Maybe
+import qualified Data.Text as T
 import Data.Time.Calendar
 import Data.Time.Calendar.OrdinalDate
-import Data.Decimal
 
 type Computer = RWS Config [Transaction] InterestState
 
@@ -82,7 +84,7 @@ mkTrans day days ratePerAnno = do
   perDayScalar <- daysInYear day
   let t = nulltransaction
           { tdate          = day
-          , tdescription   = showPercent ratePerAnno ++ " interest for " ++ showMixedAmount bal ++ " over " ++ show days ++ " days"
+          , tdescription   = T.pack $ showPercent ratePerAnno ++ " interest for " ++ showMixedAmount bal ++ " over " ++ show days ++ " days"
           , tpostings      = [pTarget,pSource]
           }
       pTarget = nullposting

@@ -1,14 +1,15 @@
 module Main ( main ) where
 
 import Hledger.Interest
-import Hledger.Read
 import Hledger.Query
+import Hledger.Read
 
 import Control.Exception ( bracket )
 import Control.Monad
 import Data.List
 import Data.Maybe
 import Data.Ord
+import qualified Data.Text as T
 import Distribution.Text ( display )
 import System.Console.GetOpt
 import System.Environment
@@ -92,9 +93,9 @@ main = bracket (return ()) (\() -> hFlush stdout >> hFlush stderr) $ \() -> do
       jnl = filterJournalTransactions (Acct interestAcc) jnl'
       ts  = sortBy (comparing tdate) (jtxns jnl)
       cfg = Config
-            { interestAccount = interestAcc
-            , sourceAccount = optSourceAcc opts
-            , targetAccount = optTargetAcc opts
+            { interestAccount = T.pack interestAcc
+            , sourceAccount = T.pack (optSourceAcc opts)
+            , targetAccount = T.pack (optTargetAcc opts)
             , dayCountConvention = fromJust (optDCC opts)
             , interestRate = fromJust (optRate opts)
             }
