@@ -9,7 +9,7 @@ Homepage:               http://github.com/peti/hledger-interest
 Category:               Finance
 Build-type:             Simple
 Cabal-version:          >= 1.6
-Tested-with:            GHC > 7.6 && < 8.1
+Tested-with:            GHC > 7.10 && < 8.1
 Data-files:             README.md
 
 Description:
