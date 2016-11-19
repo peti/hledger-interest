@@ -102,4 +102,4 @@ mkTrans day days ratePerAnno = do
   return t
 
 showPercent :: Decimal -> String
-showPercent r = shows r "%"
+showPercent r = shows (r * 100) "%"
