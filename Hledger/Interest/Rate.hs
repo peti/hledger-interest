@@ -1,4 +1,4 @@
-module Hledger.Interest.Rate ( Rate, perAnno, constant, bgb288, ingDiba ) where
+module Hledger.Interest.Rate ( Rate, perAnno, constant, bgb288, ingDiba, db24 ) where
 
 import Data.Time.Calendar
 import Data.Time.Calendar.OrdinalDate
@@ -58,4 +58,15 @@ ingDibaTable =
   , (day 2010 01 01, day 2010 12 31, 150 / 10000)
   , (day 2011 01 01, day 2011 07 14, 150 / 10000)
   , (day 2011 07 15, day 2999 12 31, 175 / 10000)
+  ]
+
+db24 :: Rate
+db24 date = (to, p)
+  where
+    (_,to,p) = head (dropWhile (\(_,to',_) -> to' < date) db24Table)
+
+db24Table :: [(Day, Day, Decimal)]
+db24Table =
+  [ (day 2000 10 06, day 2010 09 15, 638 / 10000)
+  , (day 2010 09 16, day 2999 12 31, 415 / 10000)
   ]
