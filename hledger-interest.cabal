@@ -10,7 +10,7 @@ Category:               Finance
 Build-type:             Simple
 Cabal-version:          >= 1.6
 Tested-with:            GHC > 7.10 && < 8.1
-Data-files:             README.md
+Extra-source-files:     README.md
 Stability:              stable
 
 Description:
