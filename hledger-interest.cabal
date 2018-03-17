@@ -118,4 +118,5 @@ Executable hledger-interest
   other-modules:        Hledger.Interest
                         Hledger.Interest.DayCountConvention
                         Hledger.Interest.Rate
+                        Paths_hledger_interest
   Ghc-Options:          -Wall
