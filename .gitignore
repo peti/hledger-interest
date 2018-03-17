@@ -1,5 +1,7 @@
 # ignore built files
 
+/.*.environment.*
 /.cabal-sandbox/*
 /cabal.sandbox.config
+/dist-newstyle/*
 /dist/*
