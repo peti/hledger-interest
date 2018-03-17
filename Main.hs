@@ -10,7 +10,7 @@ import Data.List
 import Data.Maybe
 import Data.Ord
 import qualified Data.Text as T
-import Distribution.Text ( display )
+import Data.Version
 import System.Console.GetOpt
 import System.Environment
 import System.Exit
@@ -81,7 +81,7 @@ parseOpts argv =
 main :: IO ()
 main = bracket (return ()) (\() -> hFlush stdout >> hFlush stderr) $ \() -> do
   (opts, args) <- getArgs >>= parseOpts
-  when (optShowVersion opts) (putStrLn (display version) >> exitSuccess)
+  when (optShowVersion opts) (putStrLn (showVersion version) >> exitSuccess)
   when (optShowHelp opts) (putStr usageMessage >> exitSuccess)
   when (null (optSourceAcc opts)) (commandLineError "required --source option is missing\n")
   when (null (optTargetAcc opts)) (commandLineError "required --target option is missing\n")
