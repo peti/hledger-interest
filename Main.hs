@@ -89,7 +89,7 @@ main = bracket (return ()) (\() -> hFlush stdout >> hFlush stderr) $ \() -> do
   when (isNothing (optRate opts)) (commandLineError "no interest rate specified\n")
   when (length args < 1) (commandLineError "required argument ACCOUNT is missing\n")
   when (length args > 1) (commandLineError "only one interest ACCOUNT may be specified\n")
-  jnl' <- readJournalFile Nothing Nothing False (optInput opts) >>= either fail return
+  jnl' <- readJournalFile definputopts (optInput opts) >>= either fail return
   let [interestAcc] = args
       jnl = filterJournalTransactions (Acct interestAcc) jnl'
       ts  = sortBy (comparing tdate) (jtxns jnl)
