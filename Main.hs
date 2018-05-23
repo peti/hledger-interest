@@ -22,7 +22,7 @@ data Options = Options
   { optVerbose          :: Bool
   , optShowVersion      :: Bool
   , optShowHelp         :: Bool
-  , optInput            :: FilePath
+  , optInput            :: [FilePath]
   , optSourceAcc        :: String
   , optTargetAcc        :: String
   , optDCC              :: Maybe DayCountConvention
@@ -36,7 +36,7 @@ defaultOptions = Options
   { optVerbose          = True
   , optShowVersion      = False
   , optShowHelp         = False
-  , optInput            = "-"
+  , optInput            = []
   , optSourceAcc        = ""
   , optTargetAcc        = ""
   , optDCC              = Nothing
@@ -52,7 +52,7 @@ options =
  , Option ['v'] ["verbose"]           (NoArg (\o -> o { optVerbose = True }))                              "echo input ledger to stdout (default)"
  , Option ['q'] ["quiet"]             (NoArg (\o -> o { optVerbose = False }))                             "don't echo input ledger to stdout"
  , Option []    ["today"]             (NoArg (\o -> o { optBalanceToday = True }))                         "compute interest up until today"
- , Option ['f'] ["file"]              (ReqArg (\f o -> o { optInput = f }) "FILE")                         "input ledger file (pass '-' for stdin)"
+ , Option ['f'] ["file"]              (ReqArg (\f o -> o { optInput = f : (optInput o) }) "FILE")          "input ledger file (pass '-' for stdin)"
  , Option ['s'] ["source"]            (ReqArg (\a o -> o { optSourceAcc = a }) "ACCOUNT")                  "interest source account"
  , Option ['t'] ["target"]            (ReqArg (\a o -> o { optTargetAcc = a }) "ACCOUNT")                  "interest target account"
  , Option ['I'] ["ignore-assertions"] (NoArg (\o -> o { optIgnoreAssertions = True }))                     "ignore any failing balance assertions"
@@ -93,7 +93,7 @@ main = bracket (return ()) (\() -> hFlush stdout >> hFlush stderr) $ \() -> do
   when (length args < 1) (commandLineError "required argument ACCOUNT is missing\n")
   when (length args > 1) (commandLineError "only one interest ACCOUNT may be specified\n")
   let ledgerInputOptions = definputopts { ignore_assertions_ = optIgnoreAssertions opts }
-  jnl' <- readJournalFile ledgerInputOptions (optInput opts) >>= either fail return
+  jnl' <- readJournalFiles ledgerInputOptions (reverse (optInput opts)) >>= either fail return
   let [interestAcc] = args
       jnl = filterJournalTransactions (Acct interestAcc) jnl'
       ts  = sortBy (comparing tdate) (jtxns jnl)
