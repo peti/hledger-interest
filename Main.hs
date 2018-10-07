@@ -112,4 +112,4 @@ main = bracket (return ()) (\() -> hFlush stdout >> hFlush stderr) $ \() -> do
       result
         | optVerbose opts = ts' ++ ts
         | otherwise       = ts'
-  mapM_ (putStr . show) (sortBy (comparing tdate) result)
+  mapM_ (putStr . showTransaction) (sortBy (comparing tdate) result)
