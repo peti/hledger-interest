@@ -5,7 +5,7 @@ License:                BSD3
 License-file:           LICENSE
 Author:                 Peter Simons <simons@cryp.to>
 Maintainer:             Peter Simons <simons@cryp.to>
-Homepage:               http://github.com/peti/hledger-interest
+Homepage:               https://github.com/peti/hledger-interest
 Category:               Finance
 Build-type:             Simple
 Cabal-version:          >= 1.6
