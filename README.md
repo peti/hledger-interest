@@ -17,19 +17,21 @@ An overview over the available run-time options can be displayed by
 running "`hleder-interest --help`":
 
     Usage: hledger-interest [OPTION...] ACCOUNT
-      -v          --verbose         echo input ledger to stdout (default)
-      -q          --quiet           don't echo input ledger to stdout
-                  --today           compute interest up until today
-      -f FILE     --file=FILE       input ledger file (pass '-' for stdin)
-      -s ACCOUNT  --source=ACCOUNT  interest source account
-      -t ACCOUNT  --target=ACCOUNT  interest target account
-                  --act             use 'act' day counting convention
-                  --30-360          use '30/360' day counting convention
-                  --30E-360         use '30E/360' day counting convention
-                  --30E-360isda     use '30E/360isda' day counting convention
-                  --constant=RATE   constant interest rate
-                  --annual=RATE     annual interest rate
-                  --bgb288          compute interest according to German BGB288
+      -v          --verbose                   echo input ledger to stdout (default)
+      -q          --quiet                     don't echo input ledger to stdout
+                  --today                     compute interest up until today
+      -f FILE     --file=FILE                 input ledger file (pass '-' for stdin)
+      -s ACCOUNT  --source=ACCOUNT            interest source account
+      -t ACCOUNT  --target=ACCOUNT            interest target account
+                  --act                       use 'act' day counting convention
+                  --30-360                    use '30/360' day counting convention
+                  --30E-360                   use '30E/360' day counting convention
+                  --30E-360isda               use '30E/360isda' day counting convention
+                  --constant=RATE             constant interest rate
+                  --annual=RATE               annual interest rate
+                  --annual-schedule=SCHEDULE  schedule of annual interest rates.
+                                              syntax: '[(Date1,Rate1),(Date2,Rate2),...]'
+                  --bgb288                    compute interest according to German BGB288
 
 When run, hledger-interest reads the [ledger
 file](http://hledger.org/MANUAL.html#file-format) designated by the
