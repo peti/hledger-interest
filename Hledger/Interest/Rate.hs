@@ -1,8 +1,9 @@
-module Hledger.Interest.Rate ( Rate, perAnno, constant, bgb288, ingDiba, db24 ) where
+module Hledger.Interest.Rate ( Rate, perAnno, perAnnoSchedule, constant, bgb288, ingDiba, db24 ) where
 
 import Data.Time.Calendar
 import Data.Time.Calendar.OrdinalDate
 import Data.Decimal
+import Data.List (sortOn)
 
 type Rate = Day -> (Day,Decimal)
 
@@ -10,10 +11,19 @@ constant :: Decimal -> Rate
 constant rate _ = (day 999999 12 31, rate)
 
 perAnno :: Decimal -> Rate
-perAnno rate date = (day (fst (toOrdinalDate date)) 12 31, rate)
+perAnno rate date = (yearEnd date, rate)
 
+perAnnoSchedule :: [(Day,Decimal)] -> Rate
+perAnnoSchedule schedule date = (yearEnd date, effectiveRate)
+  where
+    (_, effectiveRate) = last $ takeWhile (\(fromDate, _) -> fromDate<date) sortedSchedule
+    sortedSchedule = sortOn fst schedule
+        
 day :: Integer -> Int -> Int -> Day
 day = fromGregorian
+
+yearEnd :: Day -> Day
+yearEnd date = day (fst (toOrdinalDate date)) 12 31
 
 bgb288 :: Rate
 bgb288 = basiszins (5/100)
