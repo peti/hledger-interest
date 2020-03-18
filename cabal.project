@@ -1,0 +1,8 @@
+-- cabal.project
+
+packages: .
+tests: True
+
+package hledger-interest
+  ghc-options:        -Wall -Wcompat -Wincomplete-uni-patterns -Wincomplete-record-updates
+                      -Wredundant-constraints
