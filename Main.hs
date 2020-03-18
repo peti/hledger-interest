@@ -8,7 +8,6 @@ import Control.Exception ( bracket )
 import Control.Monad
 import Data.List
 import Data.Maybe
-import Data.Ord
 import qualified Data.Text as T
 import Data.Version
 import System.Console.GetOpt
@@ -52,7 +51,7 @@ options =
  , Option ['v'] ["verbose"]           (NoArg (\o -> o { optVerbose = True }))                              "echo input ledger to stdout (default)"
  , Option ['q'] ["quiet"]             (NoArg (\o -> o { optVerbose = False }))                             "don't echo input ledger to stdout"
  , Option []    ["today"]             (NoArg (\o -> o { optBalanceToday = True }))                         "compute interest up until today"
- , Option ['f'] ["file"]              (ReqArg (\f o -> o { optInput = f : (optInput o) }) "FILE")          "input ledger file (pass '-' for stdin)"
+ , Option ['f'] ["file"]              (ReqArg (\f o -> o { optInput = f : optInput o }) "FILE")          "input ledger file (pass '-' for stdin)"
  , Option ['s'] ["source"]            (ReqArg (\a o -> o { optSourceAcc = a }) "ACCOUNT")                  "interest source account"
  , Option ['t'] ["target"]            (ReqArg (\a o -> o { optTargetAcc = a }) "ACCOUNT")                  "interest target account"
  , Option ['I'] ["ignore-assertions"] (NoArg (\o -> o { optIgnoreAssertions = True }))                     "ignore any failing balance assertions"
@@ -91,13 +90,13 @@ main = bracket (return ()) (\() -> hFlush stdout >> hFlush stderr) $ \() -> do
   when (null (optTargetAcc opts)) (commandLineError "required --target option is missing\n")
   when (isNothing (optDCC opts)) (commandLineError "no day counting convention specified\n")
   when (isNothing (optRate opts)) (commandLineError "no interest rate specified\n")
-  when (length args < 1) (commandLineError "required argument ACCOUNT is missing\n")
+  when (null args) (commandLineError "required argument ACCOUNT is missing\n")
   when (length args > 1) (commandLineError "only one interest ACCOUNT may be specified\n")
   let ledgerInputOptions = definputopts { ignore_assertions_ = optIgnoreAssertions opts }
   jnl' <- readJournalFiles ledgerInputOptions (reverse (optInput opts)) >>= either fail return
   let [interestAcc] = args
       jnl = filterJournalTransactions (Acct interestAcc) jnl'
-      ts  = sortBy (comparing tdate) (jtxns jnl)
+      ts  = sortOn tdate (jtxns jnl)
       cfg = Config
             { interestAccount = T.pack interestAcc
             , sourceAccount = T.pack (optSourceAcc opts)
@@ -113,4 +112,4 @@ main = bracket (return ()) (\() -> hFlush stdout >> hFlush stderr) $ \() -> do
       result
         | optVerbose opts = ts' ++ ts
         | otherwise       = ts'
-  mapM_ (putStr . showTransactionUnelided) (sortBy (comparing tdate) result)
+  mapM_ (putStr . showTransactionUnelided) (sortOn tdate result)
