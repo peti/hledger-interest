@@ -90,12 +90,13 @@ main = bracket (return ()) (\() -> hFlush stdout >> hFlush stderr) $ \() -> do
   when (null (optTargetAcc opts)) (commandLineError "required --target option is missing\n")
   when (isNothing (optDCC opts)) (commandLineError "no day counting convention specified\n")
   when (isNothing (optRate opts)) (commandLineError "no interest rate specified\n")
-  when (null args) (commandLineError "required argument ACCOUNT is missing\n")
-  when (length args > 1) (commandLineError "only one interest ACCOUNT may be specified\n")
   let ledgerInputOptions = definputopts { ignore_assertions_ = optIgnoreAssertions opts }
   jnl' <- readJournalFiles ledgerInputOptions (reverse (optInput opts)) >>= either fail return
-  let [interestAcc] = args
-      jnl = filterJournalTransactions (Acct interestAcc) jnl'
+  interestAcc <- case args of
+                   []    -> commandLineError "required argument ACCOUNT is missing\n"
+                   [acc] -> return acc
+                   _     -> commandLineError "only one interest ACCOUNT may be specified\n"
+  let jnl = filterJournalTransactions (Acct interestAcc) jnl'
       ts  = sortOn tdate (jtxns jnl)
       cfg = Config
             { interestAccount = T.pack interestAcc
