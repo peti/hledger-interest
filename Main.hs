@@ -6,7 +6,7 @@ import Hledger.Read
 
 import Control.Exception ( bracket )
 import Control.Monad
-import Data.List
+import Data.List ( sortOn )
 import Data.Maybe
 import qualified Data.Text as T
 import Data.Version
