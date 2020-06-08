@@ -64,7 +64,7 @@ computeInterest day = do
       to = min day endOfPeriod
       newFrom = succ to
   modify (\st -> st { balancedUntil = newFrom })
-  when (to >= from && not (isZeroMixedAmount bal)) $ do
+  when (to >= from && not (mixedAmountLooksZero bal)) $ do
     diff <- asks dayCountConvention
     t <- mkTrans to ((from `diff` to) + 1) ratePerAnno
     tell [t]
