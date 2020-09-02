@@ -3,6 +3,7 @@ module Main ( main ) where
 import Hledger.Interest
 import Hledger.Query
 import Hledger.Read
+import Hledger.Utils
 
 import Control.Exception ( bracket )
 import Control.Monad
@@ -96,7 +97,7 @@ main = bracket (return ()) (\() -> hFlush stdout >> hFlush stderr) $ \() -> do
                    []    -> commandLineError "required argument ACCOUNT is missing\n"
                    [acc] -> return acc
                    _     -> commandLineError "only one interest ACCOUNT may be specified\n"
-  let jnl = filterJournalTransactions (Acct interestAcc) jnl'
+  let jnl = filterJournalTransactions (Acct (toRegex' interestAcc)) jnl'
       ts  = sortOn tdate (jtxns jnl)
       cfg = Config
             { interestAccount = T.pack interestAcc
