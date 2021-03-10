@@ -95,12 +95,12 @@ main = bracket (return ()) (\() -> hFlush stdout >> hFlush stderr) $ \() -> do
   jnl' <- readJournalFiles ledgerInputOptions (reverse (optInput opts)) >>= either fail return
   interestAcc <- case args of
                    []    -> commandLineError "required argument ACCOUNT is missing\n"
-                   [acc] -> return acc
+                   [acc] -> return $ T.pack acc
                    _     -> commandLineError "only one interest ACCOUNT may be specified\n"
   let jnl = filterJournalTransactions (Acct (toRegex' interestAcc)) jnl'
       ts  = sortOn tdate (jtxns jnl)
       cfg = Config
-            { interestAccount = T.pack interestAcc
+            { interestAccount = interestAcc
             , sourceAccount = T.pack (optSourceAcc opts)
             , targetAccount = T.pack (optTargetAcc opts)
             , dayCountConvention = fromJust (optDCC opts)
@@ -114,4 +114,4 @@ main = bracket (return ()) (\() -> hFlush stdout >> hFlush stderr) $ \() -> do
       result
         | optVerbose opts = ts' ++ ts
         | otherwise       = ts'
-  mapM_ (putStr . showTransactionUnelided) (sortOn tdate result)
+  mapM_ (putStr . T.unpack . showTransaction) (sortOn tdate result)
