@@ -89,7 +89,7 @@ mkTrans day days ratePerAnno = do
           }
       pTarget = nullposting
           { paccount       = targetAcc
-          , pamount        = Mixed [ a { aquantity = (aquantity a * ratePerAnno) / fromInteger perDayScalar * fromInteger days } | a <- amounts bal ]
+          , pamount        = mixed [ a { aquantity = (aquantity a * ratePerAnno) / fromInteger perDayScalar * fromInteger days } | a <- amounts bal ]
           , ptype          = RegularPosting
           , ptransaction   = Just t
           }
