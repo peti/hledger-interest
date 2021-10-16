@@ -1,0 +1,22 @@
+<
+2021-01-01 deposit
+  assets   100 €
+  income
+
+2021-01-01 deposit
+  assets   100 $
+  income
+
+2021-07-01 deposit
+  assets   100 €
+  income
+
+$ hledger-interest -f- -s income:interest -t assets:interest --act --constant=0.01 --quiet assets
+>
+2021-07-01 1% interest for 100 $, 100 € over 181 days
+    assets:interest               0
+    assets:interest               0
+    income:interest               0
+    income:interest               0
+
+>= 0
