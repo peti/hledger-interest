@@ -19,6 +19,7 @@ import Data.Maybe
 import qualified Data.Text as T
 import Data.Time.Calendar
 import Data.Time.Calendar.OrdinalDate
+import Text.Regex (subRegex, mkRegex)
 
 type Computer = RWS Config [Transaction] InterestState
 
@@ -84,7 +85,7 @@ mkTrans day days ratePerAnno = do
   perDayScalar <- daysInYear day
   let t = nulltransaction
           { tdate          = day
-          , tdescription   = T.pack $ showPercent ratePerAnno ++ " interest for " ++ showMixedAmount bal ++ " over " ++ show days ++ " days"
+          , tdescription   = T.pack $ showPercent ratePerAnno ++ " interest for " ++ showMixedAmountNoLinebreaks bal ++ " over " ++ show days ++ " days"
           , tpostings      = [pTarget,pSource]
           }
       pTarget = nullposting
@@ -103,3 +104,6 @@ mkTrans day days ratePerAnno = do
 
 showPercent :: Decimal -> String
 showPercent r = shows (r * 100) "%"
+
+showMixedAmountNoLinebreaks :: MixedAmount -> String
+showMixedAmountNoLinebreaks = let regex = mkRegex "[\n\r]+" in flip (subRegex regex) ", " . showMixedAmount
