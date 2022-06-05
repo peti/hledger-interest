@@ -92,7 +92,7 @@ main = bracket (return ()) (\() -> hFlush stdout >> hFlush stderr) $ \() -> do
   when (isNothing (optDCC opts)) (commandLineError "no day counting convention specified\n")
   when (isNothing (optRate opts)) (commandLineError "no interest rate specified\n")
   let ledgerInputOptions = definputopts { balancingopts_ = (balancingopts_ definputopts) { ignore_assertions_ = optIgnoreAssertions opts } }
-  jnl' <- readJournalFiles ledgerInputOptions (reverse (optInput opts)) >>= either fail return
+  jnl' <- (runExceptT $ readJournalFiles ledgerInputOptions (reverse (optInput opts))) >>= either fail return
   interestAcc <- case args of
                    []    -> commandLineError "required argument ACCOUNT is missing\n"
                    [acc] -> return $ T.pack acc
