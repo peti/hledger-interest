@@ -1,5 +1,5 @@
 Name:                   hledger-interest
-Version:                1.6.3
+Version:                1.6.4
 Synopsis:               computes interest for a given account
 License:                BSD3
 License-file:           LICENSE
@@ -119,7 +119,7 @@ Source-Repository head
 Executable hledger-interest
   default-language:     Haskell2010
   Main-is:              Main.hs
-  Build-depends:        base >= 3 && < 5, hledger-lib >= 1.23 && < 1.26, time, mtl, Cabal, Decimal, text
+  Build-depends:        base >= 3 && < 5, hledger-lib >= 1.26 && < 1.27, time, mtl, Cabal, Decimal, text
   other-modules:        Hledger.Interest
                         Hledger.Interest.DayCountConvention
                         Hledger.Interest.Rate
