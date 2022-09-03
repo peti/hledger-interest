@@ -119,7 +119,7 @@ Source-Repository head
 Executable hledger-interest
   default-language:     Haskell2010
   Main-is:              Main.hs
-  Build-depends:        base >= 3 && < 5, hledger-lib >= 1.26 && < 1.27, time, mtl, Cabal, Decimal, text
+  Build-depends:        base >= 3 && < 5, hledger-lib >= 1.26 && < 1.28, time, mtl, Cabal, Decimal, text
   other-modules:        Hledger.Interest
                         Hledger.Interest.DayCountConvention
                         Hledger.Interest.Rate
