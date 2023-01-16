@@ -114,7 +114,7 @@ Description:
 
 Source-Repository head
   Type:                 git
-  Location:             git://github.com/peti/hledger-interest.git
+  Location:             https://github.com/peti/hledger-interest.git
 
 Executable hledger-interest
   default-language:     Haskell2010
