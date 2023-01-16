@@ -1,5 +1,5 @@
 Name:                   hledger-interest
-Version:                1.6.4
+Version:                1.6.5
 Synopsis:               computes interest for a given account
 License:                BSD3
 License-file:           LICENSE
