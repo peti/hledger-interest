@@ -10,6 +10,7 @@ import Control.Monad
 import Data.List ( sortOn )
 import Data.Maybe
 import qualified Data.Text as T
+import Data.Time
 import Data.Version
 import System.Console.GetOpt
 import System.Environment
@@ -28,6 +29,7 @@ data Options = Options
   , optDCC              :: Maybe DayCountConvention
   , optRate             :: Maybe Rate
   , optBalanceToday     :: Bool
+  , optBalanceUntil     :: Maybe String
   , optIgnoreAssertions :: Bool
   }
 
@@ -42,6 +44,7 @@ defaultOptions = Options
   , optDCC              = Nothing
   , optRate             = Nothing
   , optBalanceToday     = False
+  , optBalanceUntil     = Nothing
   , optIgnoreAssertions = False
   }
 
@@ -52,7 +55,8 @@ options =
  , Option ['v'] ["verbose"]           (NoArg (\o -> o { optVerbose = True }))                              "echo input ledger to stdout (default)"
  , Option ['q'] ["quiet"]             (NoArg (\o -> o { optVerbose = False }))                             "don't echo input ledger to stdout"
  , Option []    ["today"]             (NoArg (\o -> o { optBalanceToday = True }))                         "compute interest up until today"
- , Option ['f'] ["file"]              (ReqArg (\f o -> o { optInput = f : optInput o }) "FILE")          "input ledger file (pass '-' for stdin)"
+ , Option []    ["until"]             (ReqArg (\d o -> o { optBalanceUntil = Just d}) "YYYY-MM-DD")        "compute interest up until the given date"
+ , Option ['f'] ["file"]              (ReqArg (\f o -> o { optInput = f : optInput o }) "FILE")            "input ledger file (pass '-' for stdin)"
  , Option ['s'] ["source"]            (ReqArg (\a o -> o { optSourceAcc = a }) "ACCOUNT")                  "interest source account"
  , Option ['t'] ["target"]            (ReqArg (\a o -> o { optTargetAcc = a }) "ACCOUNT")                  "interest target account"
  , Option ['I'] ["ignore-assertions"] (NoArg (\o -> o { optIgnoreAssertions = True }))                     "ignore any failing balance assertions"
@@ -91,6 +95,20 @@ main = bracket (return ()) (\() -> hFlush stdout >> hFlush stderr) $ \() -> do
   when (null (optTargetAcc opts)) (commandLineError "required --target option is missing\n")
   when (isNothing (optDCC opts)) (commandLineError "no day counting convention specified\n")
   when (isNothing (optRate opts)) (commandLineError "no interest rate specified\n")
+  mbComputeInterestUntil <-
+    case optBalanceUntil opts of
+      Just untilStr
+        | optBalanceToday opts ->
+            commandLineError "Specify either --today or --until=YYYY-MM-DD.\n"
+        | otherwise -> do
+            let fmt = "%Y-%-m-%-d"
+            case parseTimeM True defaultTimeLocale fmt untilStr :: Maybe Day of
+              Nothing -> commandLineError $ "Can't parse the specified --until date." ++
+                " Make sure it has the format " ++ fmt ++ ".\n"
+              Just day -> pure $ Just day
+      Nothing
+        | optBalanceToday opts -> Just <$> getCurrentDay
+        | otherwise -> return Nothing
   let ledgerInputOptions = definputopts { balancingopts_ = (balancingopts_ definputopts) { ignore_assertions_ = optIgnoreAssertions opts } }
   jnl' <- runExceptT (readJournalFiles ledgerInputOptions (reverse (optInput opts))) >>= either fail return
   interestAcc <- case args of
@@ -106,11 +124,9 @@ main = bracket (return ()) (\() -> hFlush stdout >> hFlush stderr) $ \() -> do
             , dayCountConvention = fromJust (optDCC opts)
             , interestRate = fromJust (optRate opts)
             }
-  thisDay <- getCurrentDay
-  let finalize
-        | optBalanceToday opts = computeInterest thisDay
-        | otherwise            = return ()
-      ts' = runComputer cfg (mapM_ processTransaction ts >> finalize)
+  let ts' = runComputer cfg $ do
+        mapM_ processTransaction ts
+        mapM_ computeInterest mbComputeInterestUntil
       result
         | optVerbose opts = ts' ++ ts
         | otherwise       = ts'
