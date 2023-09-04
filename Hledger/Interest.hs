@@ -13,6 +13,7 @@ import Hledger.Data
 import Hledger.Interest.DayCountConvention
 import Hledger.Interest.Rate
 
+import Control.Monad
 import Control.Monad.RWS
 import Data.Decimal
 import Data.Maybe
