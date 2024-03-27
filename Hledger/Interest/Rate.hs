@@ -3,7 +3,7 @@ module Hledger.Interest.Rate ( Rate, perAnno, perAnnoSchedule, constant, bgb288,
 import Data.Time.Calendar
 import Data.Time.Calendar.OrdinalDate
 import Data.Decimal
-import Data.List (sortOn)
+import Data.List (sortOn, find)
 
 type Rate = Day -> (Day,Decimal)
 
@@ -14,9 +14,23 @@ perAnno :: Decimal -> Rate
 perAnno rate date = (yearEnd date, rate)
 
 perAnnoSchedule :: [(Day,Decimal)] -> Rate
-perAnnoSchedule schedule date = (yearEnd date, effectiveRate)
+perAnnoSchedule schedule date = (effectiveUntil, effectiveRate)
   where
-    (_, effectiveRate) = last $ takeWhile (\(fromDate, _) -> fromDate<date) sortedSchedule
+    effectiveUntil =
+      -- make sure that end date we report does not cross the year boundary
+      min (yearEnd date) endOfPeriod
+    (endOfPeriod, effectiveRate) =
+      case find (\(fromDate, toDate,  _) -> fromDate<=date && date<=toDate) fromToSchedule of
+        Nothing -> (yearEnd date, 0)
+        Just (fromDate,toDate,rate) -> (toDate, rate)
+    fromToSchedule =
+      -- Convert the list of (startDate,rate) to (startDate,endDate,rate) intervals, where
+      -- the end date of the interval is the day before the start of the next interval,
+      -- and the last interval goes to infinity
+      zipWith
+        (\(from, rate) (to, _) -> (from, pred to, rate))
+        sortedSchedule
+        (drop 1 sortedSchedule ++ [(day 999999 1 1,0)])
     sortedSchedule = sortOn fst schedule
         
 day :: Integer -> Int -> Int -> Day
