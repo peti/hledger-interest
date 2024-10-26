@@ -18,7 +18,7 @@ perAnnoSchedule schedule date = (yearEnd date, effectiveRate)
   where
     (_, effectiveRate) = last $ takeWhile (\(fromDate, _) -> fromDate<date) sortedSchedule
     sortedSchedule = sortOn fst schedule
-        
+
 day :: Integer -> Int -> Int -> Day
 day = fromGregorian
 
