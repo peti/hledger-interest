@@ -82,7 +82,7 @@ commandLineError err = do hPutStrLn stderr (err ++ usageMessage)
 
 parseOpts :: [String] -> IO (Options, [String])
 parseOpts argv =
-   case getOpt Permute options argv of
+   case System.Console.GetOpt.getOpt Permute options argv of
       (o,n,[]  ) -> return (foldl (flip id) defaultOptions o, n)
       (_,_,errs) -> commandLineError (concat errs)
 
