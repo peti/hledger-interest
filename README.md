@@ -1,6 +1,11 @@
 hledger-interest
 ================
 
+[![hackage release](https://img.shields.io/hackage/v/hledger-interest.svg?label=hackage)](http://hackage.haskell.org/package/hledger-interest)
+[![stackage LTS package](http://stackage.org/package/hledger-interest/badge/lts)](http://stackage.org/lts/package/hledger-interest)
+[![stackage Nightly package](http://stackage.org/package/hledger-interest/badge/nightly)](http://stackage.org/nightly/package/hledger-interest)
+[![CI Status](https://github.com/peti/hledger-interest/actions/workflows/haskell-ci.yml/badge.svg)](https://github.com/peti/hledger-interest/actions/workflows/haskell-ci.yml)
+
 hledger-interest is a small command-line utility based on [Simon
 Michael's hlegder library](http://hledger.org/). Its purpose is to
 compute interest for a given ledger account. Using command line flags,
