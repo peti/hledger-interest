@@ -3,7 +3,7 @@ module Main ( main ) where
 import Hledger.Interest
 import Hledger.Query
 import Hledger.Read
-import Hledger.Utils
+import Hledger.Utils ( toRegex' )
 
 import Control.Exception ( bracket )
 import Control.Monad
