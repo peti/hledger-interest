@@ -8,14 +8,16 @@
 #
 # For more information, see https://github.com/haskell-CI/haskell-ci
 #
-# version: 0.19.20250821
+# version: 0.19.20260209
 #
-# REGENDATA ("0.19.20250821",["github","--doctest","--doctest-version=^>=0.24","hledger-interest.cabal"])
+# REGENDATA ("0.19.20260209",["github","--doctest","--doctest-version=^>=0.24","hledger-interest.cabal"])
 #
 name: Haskell-CI
 on:
   - push
   - pull_request
+  - merge_group
+  - workflow_dispatch
 jobs:
   linux:
     name: Haskell-CI - Linux - ${{ matrix.compiler }}
@@ -28,14 +30,19 @@ jobs:
     strategy:
       matrix:
         include:
+          - compiler: ghc-9.14.1
+            compilerKind: ghc
+            compilerVersion: 9.14.1
+            setup-method: ghcup
+            allow-failure: false
           - compiler: ghc-9.12.2
             compilerKind: ghc
             compilerVersion: 9.12.2
             setup-method: ghcup
             allow-failure: false
-          - compiler: ghc-9.10.2
+          - compiler: ghc-9.10.3
             compilerKind: ghc
-            compilerVersion: 9.10.2
+            compilerVersion: 9.10.3
             setup-method: ghcup
             allow-failure: false
           - compiler: ghc-9.8.4
@@ -166,7 +173,7 @@ jobs:
       - name: cache (tools)
         uses: actions/cache/restore@v4
         with:
-          key: ${{ runner.os }}-${{ matrix.compiler }}-tools-820fa990
+          key: ${{ runner.os }}-${{ matrix.compiler }}-tools-2ae1f11d
           path: ~/.haskell-ci-tools
       - name: install cabal-plan
         run: |
@@ -185,10 +192,10 @@ jobs:
         if: always()
         uses: actions/cache/save@v4
         with:
-          key: ${{ runner.os }}-${{ matrix.compiler }}-tools-820fa990
+          key: ${{ runner.os }}-${{ matrix.compiler }}-tools-2ae1f11d
           path: ~/.haskell-ci-tools
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           path: source
       - name: initial cabal.project for sdist
