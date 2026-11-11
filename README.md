@@ -26,6 +26,7 @@ running "`hleder-interest --help`":
       -q          --quiet                     don't echo input ledger to stdout
                   --today                     compute interest up until today
       -f FILE     --file=FILE                 input ledger file (pass '-' for stdin)
+                                              default: $LEDGER_FILE or ~/.hledger.journal
       -s ACCOUNT  --source=ACCOUNT            interest source account
       -t ACCOUNT  --target=ACCOUNT            interest target account
                   --act                       use 'act' day counting convention

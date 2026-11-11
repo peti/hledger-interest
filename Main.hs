@@ -5,7 +5,7 @@ import Hledger.Query
 import Hledger.Read
 import Hledger.Utils ( toRegex' )
 
-import Control.Exception ( bracket )
+import Control.Exception ( ErrorCall(..), bracket, handle )
 import Control.Monad
 import Data.List ( sortOn )
 import Data.Maybe
@@ -52,7 +52,7 @@ options =
  , Option ['v'] ["verbose"]           (NoArg (\o -> o { optVerbose = True }))                              "echo input ledger to stdout (default)"
  , Option ['q'] ["quiet"]             (NoArg (\o -> o { optVerbose = False }))                             "don't echo input ledger to stdout"
  , Option []    ["today"]             (NoArg (\o -> o { optBalanceToday = True }))                         "compute interest up until today"
- , Option ['f'] ["file"]              (ReqArg (\f o -> o { optInput = f : optInput o }) "FILE")          "input ledger file (pass '-' for stdin)"
+ , Option ['f'] ["file"]              (ReqArg (\f o -> o { optInput = f : optInput o }) "FILE")            "input ledger file (pass '-' for stdin)\ndefault: $LEDGER_FILE or ~/.hledger.journal"
  , Option ['s'] ["source"]            (ReqArg (\a o -> o { optSourceAcc = a }) "ACCOUNT")                  "interest source account"
  , Option ['t'] ["target"]            (ReqArg (\a o -> o { optTargetAcc = a }) "ACCOUNT")                  "interest target account"
  , Option ['I'] ["ignore-assertions"] (NoArg (\o -> o { optIgnoreAssertions = True }))                     "ignore any failing balance assertions"
@@ -92,7 +92,11 @@ main = bracket (return ()) (\() -> hFlush stdout >> hFlush stderr) $ \() -> do
   when (isNothing (optDCC opts)) (commandLineError "no day counting convention specified\n")
   when (isNothing (optRate opts)) (commandLineError "no interest rate specified\n")
   let ledgerInputOptions = definputopts { balancingopts_ = (balancingopts_ definputopts) { ignore_assertions_ = optIgnoreAssertions opts } }
-  jnl' <- runExceptT (readJournalFiles ledgerInputOptions (reverse (optInput opts))) >>= either fail return
+  inputFiles <- case optInput opts of
+                  [] -> pure <$> defaultJournalPath
+                  fs -> return (reverse fs)
+  jnl' <- handle (\(ErrorCall msg) -> hPutStrLn stderr msg >> exitFailure) $
+            runExceptT (readJournalFiles ledgerInputOptions inputFiles) >>= either fail return
   interestAcc <- case args of
                    []    -> commandLineError "required argument ACCOUNT is missing\n"
                    [acc] -> return $ T.pack acc
