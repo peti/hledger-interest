@@ -1,0 +1,10 @@
+# Verify that journal balance assertions are rejected unless explicitly ignored.
+# The opening assertion is deliberately off by one; the repayment leaves EUR 2700.
+
+2023-01-01 Loan
+    Assets:Loan       EUR 3600.00 = EUR 3601.00
+    Equity:Funding
+
+2023-01-11 Repayment
+    Assets:Loan       EUR -900.00 = EUR 2700.00
+    Equity:Funding

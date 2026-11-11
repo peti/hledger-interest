@@ -6,10 +6,11 @@ import Control.Monad (forM_, (>=>))
 
 import qualified Data.ByteString.Lazy as B
 import qualified Data.ByteString.Lazy.Char8 as BC
+import Data.List (isInfixOf)
 import Data.Time.Calendar (toGregorian)
 import Data.Time.LocalTime (getZonedTime, localDay, zonedTimeToLocalTime)
 import System.Exit (ExitCode(..))
-import System.Process.Typed (proc, readProcess, setStdin, closed)
+import System.Process.Typed (proc, readProcess, setStdin, closed, byteStringInput)
 import Test.Tasty (defaultMain, localOption, testGroup, TestTree)
 import Test.Tasty.Golden (goldenVsString, NoCreateFile(..))
 import Test.Tasty.HUnit (testCase, assertBool, (@?=))
@@ -54,6 +55,7 @@ main = defaultMain $ testGroup "CLI regression"
             ("empty", "zero-rate"), ("comments-only", "zero-rate"),
             ("negative", "negative-rate"), ("positive", "annual-act")]
        ])
+  , balanceAndInputTests
   , testGroup "schedule file errors"
       ([ failurePrefix fixture (fileArguments ("schedule-" ++ fixture) ["--act"])
            ("tests/fixtures/schedule-" ++ fixture ++ ".rates:" ++ line ++ ":" ++ column)
@@ -264,3 +266,45 @@ cases =
   ]
   where
     principal = "Liabilities:Loan"
+
+-- The same balance cases run under every posting policy. Their dates avoid
+-- calendar-year boundaries; the dormant case changes rate while fully repaid.
+balanceAndInputTests :: TestTree
+balanceAndInputTests = localOption (NoCreateFile True) $ testGroup "Balances and journal input"
+  ([ goldenOutput (fixture ++ "-" ++ mode)
+       (fixture ++ if mode == "transactions" then "-transactions" else "")
+       (assetArguments [fixture] (rate : flags))
+   | fixture <- ["multi-currency", "repayment-and-new-loan", "overpayment", "multiple-postings"]
+   , let rate = if fixture == "repayment-and-new-loan"
+           then "--schedule=[(2023-01-01,0.1),(2023-01-16,0.2)]"
+           else "--annual=0.1"
+   , (mode, flags) <- postingModes
+   ] ++
+   [ goldenOutput "multiple-files" "multiple-files" (assetArguments ["split-loan", "split-payment"] [])
+   , goldenOutput "multiple-files-reversed" "multiple-files" (assetArguments ["split-payment", "split-loan"] [])
+   , goldenOutput "valid-balance-assertions" "multiple-files" (assetArguments ["assertions-valid"] [])
+   ] ++
+   [ goldenOutput flag "multiple-files" (assetArguments ["assertions-invalid"] [flag])
+   | flag <- ["--ignore-assertions", "-I"]
+   ] ++
+   [ testCase "invalid-balance-assertion" $ do
+       (status, out, err) <- runCLI (assetArguments ["assertions-invalid"] [])
+       status @?= ExitFailure 1
+       out @?= B.empty
+       assertBool (BC.unpack err) ("Balance assertion failed" `isInfixOf` BC.unpack err)
+   , goldenVsString "stdin" "tests/golden/multiple-files.golden" $ do
+       input <- B.concat <$> mapM (B.readFile . fixturePath) ["split-loan", "split-payment"]
+       (status, out, err) <- readProcess $ setStdin (byteStringInput input) $
+         proc "hledger-interest" ("--file=-" : assetArguments [] [])
+       status @?= ExitSuccess
+       err @?= B.empty
+       pure out
+   ])
+
+fixturePath :: String -> FilePath
+fixturePath fixture = "tests/fixtures/" ++ fixture ++ ".journal"
+
+assetArguments :: [String] -> [String] -> [String]
+assetArguments fixtures flags = map (("--file=" ++) . fixturePath) fixtures ++
+  ["--source=Income:Interest", "--target=Assets:Interest", "--annual=0.1",
+   "--30E-360", "--quiet", "--until=2023-02-01"] ++ flags ++ ["Assets:Loan"]

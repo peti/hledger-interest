@@ -342,6 +342,12 @@ output does not depend on the clock. File-based schedules are checked
 against the same goldens for all day-count conventions and posting modes.
 Cutoff goldens exercise `--until` across the same matrix, with additional
 checks for inclusive dates, secondary dates, aliases, and option precedence.
+Balance cases cover multiple currencies, full repayment followed by a new
+loan, overpayments, and multiple postings to the selected account under all
+three posting policies. Input cases check stdin, multiple journals in either
+order, and valid, invalid, and explicitly ignored balance assertions.
+Independent calculation tests also verify those balance transitions against
+hand-derived amounts, including repayment of compounded interest.
 
 To add a case, add its argument list to `tests/golden-tests.hs` and, if needed,
 add a fixture journal. Missing baselines fail the suite, even with

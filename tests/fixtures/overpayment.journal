@@ -1,0 +1,10 @@
+# Accrue negative interest after an overpayment.
+# Repaying twice the principal reverses the balance sign.
+
+2023-01-01 Loan
+    Assets:Loan       EUR 3600.00
+    Equity:Funding
+
+2023-01-11 Overpayment
+    Assets:Loan       EUR -7200.00
+    Equity:Funding

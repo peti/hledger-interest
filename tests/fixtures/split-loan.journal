@@ -1,0 +1,6 @@
+# Supply the opening balance for multi-file and stdin tests.
+# The repayment lives in split-payment.journal to test merged input ordering.
+
+2023-01-01 Loan
+    Assets:Loan       EUR 3600.00
+    Equity:Funding

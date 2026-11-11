@@ -1,0 +1,12 @@
+2023-01-11 10% interest for EUR 3600.00, USD 7200.00 over 10 days
+    Assets:Interest       EUR 10.00
+    Assets:Interest       USD 20.00
+    Income:Interest      EUR -10.00
+    Income:Interest      USD -20.00
+
+2023-02-01 10% interest for EUR 2400.00, USD 3600.00 over 20 days
+    Assets:Interest       EUR 13.33
+    Assets:Interest       USD 20.00
+    Income:Interest      EUR -13.33
+    Income:Interest      USD -20.00
+

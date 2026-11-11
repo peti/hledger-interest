@@ -1,0 +1,14 @@
+# Resume accrual after full repayment and a dormant period.
+# A rate change while the balance is zero must not create interest.
+
+2023-01-01 Loan
+    Assets:Loan       EUR 3600.00
+    Equity:Funding
+
+2023-01-11 Full repayment
+    Assets:Loan       EUR -3600.00
+    Equity:Funding
+
+2023-01-21 New loan
+    Assets:Loan       EUR 7200.00
+    Equity:Funding

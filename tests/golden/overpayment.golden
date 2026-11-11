@@ -1,0 +1,8 @@
+2023-01-11 10% interest for EUR 3600.00 over 10 days
+    Assets:Interest       EUR 10.00
+    Income:Interest      EUR -10.00
+
+2023-02-01 10% interest for EUR -3600.00 over 20 days
+    Assets:Interest      EUR -20.00
+    Income:Interest       EUR 20.00
+

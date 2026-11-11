@@ -1,0 +1,6 @@
+# Supply the later repayment for multi-file and stdin tests.
+# Reading this file first must still process the opening loan first.
+
+2023-01-11 Repayment
+    Assets:Loan       EUR -900.00
+    Equity:Funding

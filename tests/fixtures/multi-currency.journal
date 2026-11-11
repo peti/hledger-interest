@@ -1,0 +1,14 @@
+# Keep currencies separate through a repayment.
+# Different EUR and USD balances expose accidental currency aggregation.
+
+2023-01-01 Loan
+    Assets:Loan       EUR 3600.00
+    Assets:Loan       USD 7200.00
+    Equity:Funding    EUR -3600.00
+    Equity:Funding    USD -7200.00
+
+2023-01-11 Repayment
+    Assets:Loan       EUR -1200.00
+    Assets:Loan       USD -3600.00
+    Equity:Funding    EUR 1200.00
+    Equity:Funding    USD 3600.00

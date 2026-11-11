@@ -14,6 +14,7 @@ import Test.Tasty.HUnit (Assertion, assertBool, testCase, (@?=))
 main :: IO ()
 main = defaultMain $ testGroup "Independent calculations"
   [ dayCountTests
+  , balanceTests
   , testGroup "Accrual"
       [ testCase "repayment changes the next period, not the payment day" $ do
           -- 3650 at 10% earns 1 per day in 2023. After repaying 1000,
@@ -171,12 +172,16 @@ principalChange date quantity = nulltransaction
   { tdate = date
   , tpostings = [mkPosting "Assets:Loan" quantity, mkPosting "Equity:Funding" (negate quantity)]
   }
-  where
-    mkPosting account q = nullposting
-      { paccount = account
-      , pamount = mixed [nullamt { acommodity = "EUR", aquantity = q
-                                , astyle = amountstyle { asprecision = Precision 2, ascommodityspaced = True } }]
-      }
+
+mkPosting :: AccountName -> Decimal -> Posting
+mkPosting = currencyPosting "EUR"
+
+currencyPosting :: CommoditySymbol -> AccountName -> Decimal -> Posting
+currencyPosting currency account q = nullposting
+  { paccount = account
+  , pamount = mixed [nullamt { acommodity = currency, aquantity = q
+                            , astyle = amountstyle { asprecision = Precision 2, ascommodityspaced = True } }]
+  }
 
 -- Expected values are hand-derived rational numbers, not output captured from
 -- the implementation. Compare internal quantities before any display rounding.
@@ -192,3 +197,63 @@ assertInterest cfg txns expected = do
     assertQuantity rational quantity = assertBool
       ("Expected " ++ show rational ++ "; got " ++ show quantity)
       (abs (toRational quantity - rational) < 1 % (10 ^ (30 :: Int)))
+
+balanceTests :: TestTree
+balanceTests = testGroup "Balance transitions"
+  [ testGroup name
+      [ testCase "full repayment and a new loan" $ do
+          -- First ten days earn 10. The balance is then zero across a rate
+          -- change. Ten synthetic days on the new 7200 at 20% earn 40.
+          let cfg = plain { interestRate = scheduled [(day 2023 1 1, 0.1), (day 2023 1 16, 0.2)] }
+          assertInterest cfg (compute cfg
+            [(day 2023 1 1, 3600), (day 2023 1 11, -3600), (day 2023 1 21, 7200)] cutoff)
+            [(day 2023 1 11, 10), (cutoff, 40)]
+      , testCase "repayment clears compounded interest too" $ do
+          let cfg = compound { interestRate = scheduled [(day 2023 1 1, 0.1), (day 2023 1 16, 0.2)] }
+          assertInterest cfg (compute cfg
+            [(day 2023 1 1, 3600), (day 2023 1 11, -3610), (day 2023 1 21, 7200)] cutoff)
+            [(day 2023 1 11, 10), (cutoff, 40)]
+      , testCase "overpayment reverses interest" $
+          assertInterest plain (compute plain
+            [(day 2023 1 1, 3600), (day 2023 1 11, -7200)] cutoff)
+            [(day 2023 1 11, 10), (cutoff, -20)]
+      , testCase "overpayment retains unrounded compounded balance" $
+          -- After posting 10 and repaying 7200, -3590 earns -3590/180.
+          assertInterest compound (compute compound
+            [(day 2023 1 1, 3600), (day 2023 1 11, -7200)] cutoff)
+            [(day 2023 1 11, 10), (cutoff, (-359) % 18)]
+      , testCase "all selected-account postings contribute" $ do
+          -- Net opening principal 1800 earns 5; the net repayment of 900
+          -- leaves 900, earning another 5 over twenty synthetic days.
+          let balanceChange date quantities = nulltransaction
+                { tdate = date, tpostings = map (mkPosting "Assets:Loan") quantities ++
+                    [mkPosting "Equity:Funding" (negate (sum quantities))] }
+              txns = runComputer plain $ do
+                processTransaction (balanceChange (day 2023 1 1) [3600, -1800])
+                processTransaction (balanceChange (day 2023 1 11) [-400, -500])
+                computeInterest cutoff
+          assertInterest plain txns [(day 2023 1 11, 5), (cutoff, 5)]
+      , testCase "currencies accrue independently" $ do
+          -- EUR: ten days on 3600, then twenty on 2400 = 10 + 40/3.
+          -- USD: ten days on 7200, then twenty on 3600 = 20 + 20.
+          let balanceChange date euroAmount dollarAmount = nulltransaction
+                { tdate = date, tpostings =
+                    [currencyPosting currency account quantity
+                    | (currency, q) <- [("EUR", euroAmount), ("USD", dollarAmount)]
+                    , (account, quantity) <- [("Assets:Loan", q), ("Equity:Funding", negate q)]] }
+              txns = runComputer plain $ do
+                processTransaction (balanceChange (day 2023 1 1) 3600 7200)
+                processTransaction (balanceChange (day 2023 1 11) (-1200) (-3600))
+                computeInterest cutoff
+              currencyInterest currency =
+                [t { tpostings = [p { pamount = mixed (filter ((== currency) . acommodity) (amounts (pamount p))) }
+                                 | p <- tpostings t] } | t <- txns]
+          assertInterest plain (currencyInterest "EUR") [(day 2023 1 11, 10), (cutoff, 40 % 3)]
+          assertInterest plain (currencyInterest "USD") [(day 2023 1 11, 20), (cutoff, 20)]
+      ]
+  | (name, mode) <- [("default", PostAtAllBoundaries), ("rate changes", PostOnRateChanges),
+                     ("transactions", PostOnTransactions)]
+  , let plain = baseConfig { dayCountConvention = diff30E_360, postingMode = mode }
+        compound = plain { targetAccount = "Assets:Loan" }
+  ]
+  where cutoff = day 2023 2 1
