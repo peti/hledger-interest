@@ -88,9 +88,12 @@ mkTrans day days ratePerAnno = do
           , tdescription   = T.pack $ showPercent ratePerAnno ++ " interest for " ++ showMixedAmount bal ++ " over " ++ show days ++ " days"
           , tpostings      = [pTarget,pSource]
           }
+      -- balance might have been an exact amount, in which case its precision might
+      -- be set to 0 decimal places. We ensure that interest is displayed with at least
+      -- two decimal points
       pTarget = nullposting
           { paccount       = targetAcc
-          , pamount        = mixed [ a { aquantity = (aquantity a * ratePerAnno) / fromInteger perDayScalar * fromInteger days } | a <- amounts bal ]
+          , pamount        = mixed [ setMinPrecision 2 (a { aquantity = (aquantity a * ratePerAnno) / fromInteger perDayScalar * fromInteger days}) | a <- amounts bal ]
           , ptype          = RegularPosting
           , ptransaction   = Just t
           }
@@ -101,6 +104,16 @@ mkTrans day days ratePerAnno = do
           , ptransaction   = Just t
           }
   return t
+  where
+    -- Copy of amountSetPrecisionMin (with amountDisplayPrecision inlined) from
+    -- hledger-lib >= 1.32, which older hledger-lib versions (still allowed by our
+    -- lower bound) do not provide
+    setMinPrecision minp a = amountSetPrecision (Precision $ max minp displayPrecision) a
+      where
+        displayPrecision =
+          case asprecision $ astyle a of
+            Precision n      -> n
+            NaturalPrecision -> decimalPlaces (normalizeDecimal (aquantity a))
 
 showPercent :: Decimal -> String
 showPercent r = shows (r * 100) "%"
