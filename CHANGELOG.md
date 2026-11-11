@@ -2,6 +2,12 @@
 
 ## 2.0.0 (Unreleased)
 
+- Add `--until=YYYY-MM-DD` to calculate and post interest through an
+  inclusive cutoff date, adapting Bas van Dijk's contribution in
+  [#19](https://github.com/peti/hledger-interest/pull/19). `--today` is an
+  alias for `--until=today`; the last cutoff option wins. Transactions
+  after the cutoff are excluded by effective date from calculation and
+  output, including when `--today` is used.
 - Add `--schedule-file=PATH` to read dated annualized rates from a text file.
   Rates accept fractions or percentages, with hledger date and comment
   syntax. Entries must start in column 1; blank lines are ignored, and

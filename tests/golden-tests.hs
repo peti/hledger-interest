@@ -131,6 +131,41 @@ main = defaultMain $ testGroup "CLI regression"
           invoke ["--post-on-rate-changes", "--post-on-transactions"] >>= (@?= expected)
       | (convention, flag) <- dayCounts
       ]
+  , testGroup "cutoff options"
+      [ testCase "last-cutoff-option-wins-and-today-is-an-alias" $ do
+          let invoke flags = successfulOutput $ arguments "boundaries" "Liabilities:Loan"
+                "Liabilities:Loan" ([schedule, "--act", "--quiet"] ++ flags)
+          cutoff <- invoke ["--until=2024-01-10"]
+          invoke ["--today", "--until=2024-01-10"] >>= (@?= cutoff)
+          invoke ["--until=bad", "--until=2024-01-10"] >>= (@?= cutoff)
+          full <- invoke []
+          invoke ["--until=2024-01-10", "--until=2024-03-31"] >>= (@?= full)
+          today <- invoke ["--until=today"]
+          invoke ["--today"] >>= (@?= today)
+          invoke ["--until=2024-01-10", "--today"] >>= (@?= today)
+      , testCase "unpadded-date" $ do
+          let invoke date = successfulOutput $ arguments "leap-crossing" "Liabilities:Loan"
+                "Liabilities:Loan" ["--annual=0.05", "--act", "--quiet", "--until=" ++ date]
+          expected <- invoke "2024-01-05"
+          invoke "2024-1-5" >>= (@?= expected)
+      , testCase "cutoff-before-first-transaction" $
+          forM_ postingModes $ \(_, flags) -> do
+            out <- successfulOutput $ arguments "boundaries" "Liabilities:Loan"
+              "Liabilities:Loan" ([schedule, "--act", "--until=2023-01-30"] ++ flags)
+            out @?= B.empty
+      ]
+  , testGroup "cutoff errors"
+      ([ failureCase ("invalid-" ++ date)
+           (arguments "boundaries" "Liabilities:Loan" "Liabilities:Loan"
+             ["--annual=0.05", "--act", "--until=" ++ date])
+           ("invalid value for --until: " ++ date)
+       | date <- ["bad", "2023-02-29", "2024-13-01", "2024/01/10", "2024-01-10junk", ""]
+       ] ++
+       [ failureCase "invalid-cutoff-before-reading-journal"
+           ["--file=tests/fixtures/does-not-exist.journal", "--source=Expenses:Interest",
+            "--target=Liabilities:Loan", "--annual=0.05", "--act", "--until=bad", "Liabilities:Loan"]
+           "invalid value for --until: bad"
+       ])
   ]
 
 postingModes :: [(String, [String])]
@@ -201,6 +236,16 @@ cases =
   [ ("schedule-transactions-only-" ++ convention, "boundaries", principal,
       [schedule, flag, "--quiet", "--post-on-transactions"])
   | (convention, flag) <- dayCounts
+  ] ++
+  [ ("until-" ++ mode ++ "-" ++ convention, "boundaries", principal,
+      [schedule, flag, "--quiet", "--until=2024-01-10"] ++ postingFlags)
+  | (mode, postingFlags) <- postingModes
+  , (convention, flag) <- dayCounts
+  ] ++
+  [ ("until-after-last-transaction", "leap-crossing", principal,
+      ["--annual=0.05", "--act", "--quiet", "--until=2024-01-05"])
+  , ("until-effective-dates", "cutoff", principal,
+      ["--annual=0.05", "--act", "--until=2024-01-01"])
   ] ++
   [ ("help", "boundaries", principal, ["--help"])
   , ("rate-change-at-year-end", "leap-crossing", principal,

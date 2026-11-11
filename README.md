@@ -23,14 +23,16 @@ Display the available command-line options with `hledger-interest --help`:
       -V          --version                   show version number and exit
       -v          --verbose                   echo input ledger to stdout (default)
       -q          --quiet                     don't echo input ledger to stdout
-                  --today                     compute interest up until today
-                  --post-on-transactions      post only at transactions (and with --today);
+                  --today                     alias for --until=today
+                  --until=DATE                compute interest through DATE (YYYY-MM-DD or today);
+                                              exclude transactions with later effective dates
+                  --post-on-transactions      post only at transactions (and at --until/--today);
                                               skip rate-period and automatic year-end postings;
                                               overrides --post-on-rate-changes
                   --post-on-rate-changes      post at transactions and rate-period ends;
                                               skip automatic year-end postings;
                                               --post-on-transactions takes precedence;
-                                              --today also posts on the final day
+                                              --until/--today also post on the final day
       -f FILE     --file=FILE                 input ledger file (pass '-' for stdin)
                                               default: $LEDGER_FILE or ~/.hledger.journal
       -s ACCOUNT  --source=ACCOUNT            interest source account
@@ -105,7 +107,7 @@ an additional automatic year-end posting. A transaction on December 31st
 or a new rate taking effect on January 1st still causes a
 posting on December 31st. `--post-on-transactions` takes precedence if both
 flags are supplied, regardless of their order. All modes also post on the
-final day when `--today` is used.
+final day when `--until` or `--today` is used.
 
 With `--act`, calculations still split internally at year boundaries to
 apply the correct 365/366-day denominator, even when year-end posting is
@@ -118,6 +120,25 @@ description omits the rate, for example:
     2022-01-10 interest for -9841.10 USD over 31 days
         Liabilities:Loan       -53.65 USD
         Expenses:Interest       53.65 USD
+
+## Calculation cutoff
+
+Use `--until=YYYY-MM-DD` to compute interest through a specific date,
+including that day. For example, `--until=2024-01-10` posts any remaining
+interest on January 10th, even if there is no transaction on that date.
+Dates may omit leading zeros in the month and day.
+
+`--today` is an alias for `--until=today`, using the current local date.
+Both options use one cutoff setting: if they are repeated or combined,
+the last one wins. Without either option, computation stops at the last
+matching transaction.
+
+Transactions with effective dates after the cutoff are excluded from
+both computation and echoed output. A secondary date takes precedence
+over the primary date, so a transaction with a later primary date can
+still be included if its secondary date is on or before the cutoff.
+Transactions on the cutoff date are processed normally. A cutoff before
+the first matching transaction produces no output.
 
 ## Examples
 
@@ -187,6 +208,7 @@ Interest posted on December 11th and at year end now becomes part of the
 principal for subsequent calculations. Add `--today` to either command to
 extend the calculation beyond the final repayment through the current date;
 that additional output depends on when the command runs.
+Use `--until=2011-08-22` instead for a fixed, reproducible cutoff.
 
 ## Variable annualized rates
 
@@ -287,6 +309,8 @@ flag precedence across all four day-count conventions.
 Golden cases use explicit years and avoid `--today` so their expected
 output does not depend on the clock. File-based schedules are checked
 against the same goldens for all day-count conventions and posting modes.
+Cutoff goldens exercise `--until` across the same matrix, with additional
+checks for inclusive dates, secondary dates, aliases, and option precedence.
 
 To add a case, add its argument list to `tests/golden-tests.hs` and, if needed,
 add a fixture journal. Missing baselines fail the suite, even with

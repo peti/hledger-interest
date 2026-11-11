@@ -1,0 +1,20 @@
+2023-12-30 Loan
+    Assets:Bank          EUR 1000000.00
+    Liabilities:Loan    EUR -1000000.00
+
+2023-12-31 5% interest for EUR -1000000.00 over 1 days
+    Liabilities:Loan      EUR -136.99
+    Expenses:Interest      EUR 136.99
+
+2024-01-02=2023-12-31 Payment effective before cutoff
+    Assets:Bank           EUR -50.00
+    Liabilities:Loan       EUR 50.00
+
+2024-01-01 5% interest for EUR -1000086.99 over 1 days
+    Liabilities:Loan      EUR -136.62
+    Expenses:Interest      EUR 136.62
+
+2024-01-01 Payment on cutoff
+    Assets:Bank          EUR -100.00
+    Liabilities:Loan      EUR 100.00
+

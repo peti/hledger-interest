@@ -9,6 +9,7 @@ import Control.Monad
 import Data.List ( sortOn )
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
+import Data.Time (Day, defaultTimeLocale, parseTimeM)
 import Data.Version
 import System.Console.GetOpt
 import System.Environment
@@ -29,7 +30,7 @@ data Options = Options
   , optTargetAcc        :: String
   , optDCC              :: Maybe DayCountConvention
   , optRate             :: Either String RateInput
-  , optBalanceToday     :: Bool
+  , optBalanceUntil     :: Maybe String
   , optPostOnTxns       :: Bool
   , optPostOnRateChanges :: Bool
   , optIgnoreAssertions :: Bool
@@ -45,7 +46,7 @@ defaultOptions = Options
   , optTargetAcc        = ""
   , optDCC              = Nothing
   , optRate             = Left "no interest rate specified\n"
-  , optBalanceToday     = False
+  , optBalanceUntil     = Nothing
   , optPostOnTxns       = False
   , optPostOnRateChanges = False
   , optIgnoreAssertions = False
@@ -57,9 +58,10 @@ options =
  , Option ['V'] ["version"]           (NoArg (\o -> o { optShowVersion = True }))                          "show version number and exit"
  , Option ['v'] ["verbose"]           (NoArg (\o -> o { optVerbose = True }))                              "echo input ledger to stdout (default)"
  , Option ['q'] ["quiet"]             (NoArg (\o -> o { optVerbose = False }))                             "don't echo input ledger to stdout"
- , Option []    ["today"]             (NoArg (\o -> o { optBalanceToday = True }))                         "compute interest up until today"
- , Option []    ["post-on-transactions"] (NoArg (\o -> o { optPostOnTxns = True }))                        "post only at transactions (and with --today);\nskip rate-period and automatic year-end postings;\noverrides --post-on-rate-changes"
- , Option []    ["post-on-rate-changes"] (NoArg (\o -> o { optPostOnRateChanges = True }))                     "post at transactions and rate-period ends;\nskip automatic year-end postings;\n--post-on-transactions takes precedence;\n--today also posts on the final day"
+ , Option []    ["today"]             (NoArg (\o -> o { optBalanceUntil = Just "today" }))                 "alias for --until=today"
+ , Option []    ["until"]             (ReqArg (\d o -> o { optBalanceUntil = Just d }) "DATE")              "compute interest through DATE (YYYY-MM-DD or today);\nexclude transactions with later effective dates"
+ , Option []    ["post-on-transactions"] (NoArg (\o -> o { optPostOnTxns = True }))                        "post only at transactions (and at --until/--today);\nskip rate-period and automatic year-end postings;\noverrides --post-on-rate-changes"
+ , Option []    ["post-on-rate-changes"] (NoArg (\o -> o { optPostOnRateChanges = True }))                     "post at transactions and rate-period ends;\nskip automatic year-end postings;\n--post-on-transactions takes precedence;\n--until/--today also post on the final day"
  , Option ['f'] ["file"]              (ReqArg (\f o -> o { optInput = f : optInput o }) "FILE")            "input ledger file (pass '-' for stdin)\ndefault: $LEDGER_FILE or ~/.hledger.journal"
  , Option ['s'] ["source"]            (ReqArg (\a o -> o { optSourceAcc = a }) "ACCOUNT")                  "interest source account"
  , Option ['t'] ["target"]            (ReqArg (\a o -> o { optTargetAcc = a }) "ACCOUNT")                  "interest target account"
@@ -81,6 +83,13 @@ setRate flag makeRate value opts = opts { optRate = parsed }
     parsed = case readEither value of
       Left _ -> Left ("invalid value for " ++ flag ++ ": " ++ value ++ "\n")
       Right r -> Right (RateValue (makeRate r))
+
+parseUntil :: String -> IO Day
+parseUntil "today" = getCurrentDay
+parseUntil date =
+  maybe (commandLineError ("invalid value for --until: " ++ date ++
+                          "\nexpected YYYY-MM-DD or today\n"))
+        pure (parseTimeM True defaultTimeLocale "%Y-%-m-%-d" date)
 
 usageMessage :: String
 usageMessage = usageInfo header options
@@ -109,6 +118,7 @@ run = do
   when (null (optTargetAcc opts)) (commandLineError "required --target option is missing\n")
   dcc <- maybe (commandLineError "no day counting convention specified\n") pure (optDCC opts)
   rateInput <- either commandLineError pure (optRate opts)
+  cutoff <- traverse parseUntil (optBalanceUntil opts)
   interestAcc <- case args of
                    []    -> commandLineError "required argument ACCOUNT is missing\n"
                    [acc] -> return $ T.pack acc
@@ -123,8 +133,9 @@ run = do
                   fs -> return (reverse fs)
   jnl <- runExceptT (readJournalFiles ledgerInputOptions inputFiles) >>=
            either (\msg -> hPutStrLn stderr msg >> exitFailure) pure
-  let ts = sortOn transactionDate2 $
-             filter (any ((== interestAcc) . paccount) . tpostings) (jtxns jnl)
+  let matching = filter (any ((== interestAcc) . paccount) . tpostings) (jtxns jnl)
+      ts = sortOn transactionDate2 $
+             filter (\t -> maybe True (transactionDate2 t <=) cutoff) matching
       cfg = Config
             { interestAccount = interestAcc
             , sourceAccount = T.pack (optSourceAcc opts)
@@ -134,12 +145,10 @@ run = do
             , postOnTransactions = optPostOnTxns opts
             , postAtYearEnd = not (optPostOnRateChanges opts)
             }
-  when (null ts) $ commandLineError ("no transactions found for account " ++ T.unpack interestAcc ++ "\n")
-  thisDay <- getCurrentDay
-  let finalize
-        | optBalanceToday opts = computeInterest thisDay
-        | otherwise            = return ()
-      ts' = runComputer cfg (mapM_ processTransaction ts >> finalize)
+  when (null matching) $ commandLineError ("no transactions found for account " ++ T.unpack interestAcc ++ "\n")
+  let ts' = runComputer cfg $ do
+        mapM_ processTransaction ts
+        mapM_ computeInterest cutoff
       result
         | optVerbose opts = ts' ++ ts
         | otherwise       = ts'
