@@ -1,0 +1,9 @@
+# Issue #31: a repayment recorded on 2023-02-01 carries a posting date of
+# 2023-01-11, so the principal halves on 2023-01-11.
+2023-01-01 Loan
+    Assets:Bank          EUR 3650.00
+    Liabilities:Loan
+
+2023-02-01 Repayment recorded late
+    Assets:Bank          EUR -1825.00
+    Liabilities:Loan     ; date:2023-01-11

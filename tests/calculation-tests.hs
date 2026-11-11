@@ -116,6 +116,37 @@ main = defaultMain $ testGroup "Independent calculations"
           assertInterest cfg (compute cfg [(day 2023 1 1, 3600)] (day 2023 1 20))
             [(day 2023 1 10, 0), (day 2023 1 20, 10)]
       ]
+  , testGroup "Balance-change dates (review regressions, #31)"
+      [ testCase "postings without a transaction link use the transaction date" $ do
+          -- Library callers may build transactions from bare postings
+          -- (ptransaction = Nothing). Ten days on 3650 earn 10, then ten
+          -- days on 1825 earn 5; nothing may be dated before the loan.
+          let loan = principalChange (day 2023 1 1) 3650
+              repayment = principalChange (day 2023 1 11) (-1825)
+              txns = runComputer baseConfig $ do
+                processTransaction loan
+                processTransaction repayment
+                computeInterest (day 2023 1 21)
+          assertInterest baseConfig txns [(day 2023 1 11, 10), (day 2023 1 21, 5)]
+      , testCase "a linked posting's own date takes precedence" $ do
+          -- The loan transaction is dated January 1st, its posting January
+          -- 11th: 3650 * 10% * 21 / 365 = 21 through February 1st.
+          let loan = txnTieKnot (principalChange (day 2023 1 1) 3650)
+                { tpostings = [ (mkPosting "Assets:Loan" 3650) { pdate = Just (day 2023 1 11) }
+                              , mkPosting "Equity:Funding" (-3650) ] }
+              txns = runComputer baseConfig $ do
+                processTransaction loan
+                computeInterest (day 2023 2 1)
+          assertInterest baseConfig txns [(day 2023 2 1, 21)]
+      , testCase "an unlinked posting's own date takes precedence" $ do
+          let loan = (principalChange (day 2023 1 1) 3650)
+                { tpostings = [ (mkPosting "Assets:Loan" 3650) { pdate = Just (day 2023 1 11) }
+                              , mkPosting "Equity:Funding" (-3650) ] }
+              txns = runComputer baseConfig $ do
+                processTransaction loan
+                computeInterest (day 2023 2 1)
+          assertInterest baseConfig txns [(day 2023 2 1, 21)]
+      ]
   , testGroup "Signs"
       [ testCase name $ do
           -- Ten 360-day-convention days on +/-3600 at +/-10%.

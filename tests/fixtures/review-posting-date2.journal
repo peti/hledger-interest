@@ -1,0 +1,5 @@
+# Issue #31: hledger-interest uses secondary dates, so a posting's date2 tag
+# dates the balance change, like `hledger register --date2`.
+2023-01-01 Loan
+    Assets:Bank          EUR 3650.00
+    Liabilities:Loan     ; date2:2023-01-11

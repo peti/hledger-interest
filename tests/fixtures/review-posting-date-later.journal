@@ -1,0 +1,5 @@
+# Issue #31: the loan posting is dated ten days after its transaction, so
+# interest accrues from 2023-01-11 (as in hledger register), not 2023-01-01.
+2023-01-01 Loan
+    Assets:Bank          EUR 3650.00
+    Liabilities:Loan     ; date:2023-01-11

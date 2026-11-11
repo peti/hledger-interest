@@ -1,0 +1,5 @@
+# Issue #31: the loan posting is dated in the next year, so nothing accrues
+# or posts at the 2023 year end.
+2023-12-01 Loan
+    Assets:Bank          EUR 3660.00
+    Liabilities:Loan     ; date:2024-01-01

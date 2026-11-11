@@ -1,0 +1,9 @@
+# Costs on the loan and on the repayment (unit and total cost) must not
+# reach the accrued principal or the generated interest postings.
+2023-01-01 Loan
+    Assets:Bank          USD 3650.00
+    Liabilities:Loan     EUR -3650.00 @ USD 1.00
+
+2023-01-11 Repayment
+    Assets:Bank          USD -2007.50
+    Liabilities:Loan     EUR 1825.00 @@ USD 2007.50

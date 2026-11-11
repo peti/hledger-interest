@@ -1,0 +1,14 @@
+# Issue #31 with --until=2023-01-31: the cutoff applies to posting dates.
+# Repayment A is entered before the cutoff but dated after it (excluded);
+# repayment B is entered after the cutoff but dated before it (included).
+2023-01-01 Loan
+    Assets:Bank          EUR 3650.00
+    Liabilities:Loan
+
+2023-01-05 Repayment A
+    Assets:Bank          EUR -1825.00
+    Liabilities:Loan     ; date:2023-02-10
+
+2023-02-05 Repayment B
+    Assets:Bank          EUR -730.00
+    Liabilities:Loan     ; date:2023-01-21

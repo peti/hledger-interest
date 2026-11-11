@@ -1,0 +1,54 @@
+# Issue #29: twelve monthly periods ending on the 30th (February 28th) must
+# add up to exactly 360 days under every 30/360 convention. At 3600 and 10%
+# every synthetic day earns 1.00. Zero payments only mark period ends.
+2022-12-30 Loan
+    Assets:Bank          EUR 3600.00
+    Liabilities:Loan
+
+2023-01-30 Statement
+    Assets:Bank          EUR 0.00
+    Liabilities:Loan
+
+2023-02-28 Statement
+    Assets:Bank          EUR 0.00
+    Liabilities:Loan
+
+2023-03-30 Statement
+    Assets:Bank          EUR 0.00
+    Liabilities:Loan
+
+2023-04-30 Statement
+    Assets:Bank          EUR 0.00
+    Liabilities:Loan
+
+2023-05-30 Statement
+    Assets:Bank          EUR 0.00
+    Liabilities:Loan
+
+2023-06-30 Statement
+    Assets:Bank          EUR 0.00
+    Liabilities:Loan
+
+2023-07-30 Statement
+    Assets:Bank          EUR 0.00
+    Liabilities:Loan
+
+2023-08-30 Statement
+    Assets:Bank          EUR 0.00
+    Liabilities:Loan
+
+2023-09-30 Statement
+    Assets:Bank          EUR 0.00
+    Liabilities:Loan
+
+2023-10-30 Statement
+    Assets:Bank          EUR 0.00
+    Liabilities:Loan
+
+2023-11-30 Statement
+    Assets:Bank          EUR 0.00
+    Liabilities:Loan
+
+2023-12-30 Statement
+    Assets:Bank          EUR 0.00
+    Liabilities:Loan

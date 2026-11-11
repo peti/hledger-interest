@@ -58,6 +58,7 @@ main = defaultMain $ testGroup "CLI regression"
             ("negative", "negative-rate"), ("positive", "annual-act")]
        ])
   , balanceAndInputTests
+  , reviewRegressionTests
   , testGroup "schedule file errors"
       ([ failurePrefix fixture (fileArguments ("schedule-" ++ fixture) ["--act"])
            ("tests/fixtures/schedule-" ++ fixture ++ ".rates:" ++ line ++ ":" ++ column)
@@ -310,3 +311,99 @@ assetArguments :: [String] -> [String] -> [String]
 assetArguments fixtures flags = map (("--file=" ++) . fixturePath) fixtures ++
   ["--source=Income:Interest", "--target=Assets:Interest", "--annual=0.1",
    "--30E-360", "--quiet", "--until=2023-02-01"] ++ flags ++ ["Assets:Loan"]
+
+-- Regression tests for the findings of the November 2026 code review. All
+-- expectations are calculated by hand; they are not recorded program output.
+reviewRegressionTests :: TestTree
+reviewRegressionTests = testGroup "review regressions"
+  [ testGroup "30/360 monthly periods add up to 360 days (#29)"
+      [ testCase convention $ do
+          out <- successfulOutput $ reviewArguments "review-30-360-monthly" "Liabilities:Interest"
+            [flag, "--annual=0.1", "--post-on-transactions"]
+          let expected = zipWith (\date n -> (date, n, "EUR -" ++ show n ++ ".00")) monthEnds days
+          interestSummary out @?= expected
+          sum days @?= (360 :: Int)
+      | (convention, flag, days) <-
+          -- 30/360 counts 2023-01-30 -> 2023-02-28 as 28 and 2023-02-28 -> 2023-03-30
+          -- as 32; 30E/360 agrees. 30E/360isda treats February 28th as the 30th.
+          [ ("30-360", "--30-360", [30, 28, 32] ++ replicate 9 30)
+          , ("30E-360", "--30E-360", [30, 28, 32] ++ replicate 9 30)
+          , ("30E-360isda", "--30E-360isda", replicate 12 30) ]
+      ]
+  , testGroup "posting-level dates (#31)"
+      [ testCase "posting dated after its transaction" $ do
+          -- 3650 * 10% * 21 / 365 = 21.00 for 2023-01-11 -> 2023-02-01.
+          out <- successfulOutput $ reviewArguments "review-posting-date-later" "Liabilities:Interest"
+            ["--act", "--annual=0.1", "--until=2023-02-01"]
+          interestSummary out @?= [("2023-02-01", 21, "EUR -21.00")]
+      , testCase "posting dated before its transaction" $ do
+          -- 10 days on 3650 = 10.00, then 21 days on 1825 = 10.50.
+          out <- successfulOutput $ reviewArguments "review-posting-date-earlier" "Liabilities:Interest"
+            ["--act", "--annual=0.1", "--until=2023-02-01"]
+          interestSummary out @?= [("2023-01-11", 10, "EUR -10.00"), ("2023-02-01", 21, "EUR -10.50")]
+      , testCase "cutoff applies to posting dates" $ do
+          -- Only repayment B (dated 2023-01-21) counts: 20 days on 3650 = 20.00,
+          -- then 10 days on 2920 = 8.00.
+          out <- successfulOutput $ reviewArguments "review-posting-date-cutoff" "Liabilities:Interest"
+            ["--act", "--annual=0.1", "--until=2023-01-31"]
+          interestSummary out @?= [("2023-01-21", 20, "EUR -20.00"), ("2023-01-31", 10, "EUR -8.00")]
+      , testCase "posting dated across a year end" $ do
+          -- No 2023 year-end posting; 3660 * 10% * 30 / 366 = 30.00 in 2024.
+          out <- successfulOutput $ reviewArguments "review-posting-date-year-end" "Liabilities:Interest"
+            ["--act", "--annual=0.1", "--until=2024-01-31"]
+          interestSummary out @?= [("2024-01-31", 30, "EUR -30.00")]
+      , testCase "posting date2 tag" $ do
+          out <- successfulOutput $ reviewArguments "review-posting-date2" "Liabilities:Interest"
+            ["--act", "--annual=0.1", "--until=2023-02-01"]
+          interestSummary out @?= [("2023-02-01", 21, "EUR -21.00")]
+      ]
+  , testGroup "transaction costs"
+      [ testCase "costs do not reach principal or interest postings" $ do
+          -- 10 days on 3650 = 10.00, then 21 days on 1825 = 10.50.
+          out <- successfulOutput $ reviewArguments "review-costed-repayment" "Liabilities:Interest"
+            ["--act", "--annual=0.1", "--until=2023-02-01"]
+          interestSummary out @?= [("2023-01-11", 10, "EUR -10.00"), ("2023-02-01", 21, "EUR -10.50")]
+          assertBool ("Generated interest mentions a cost:\n" ++ BC.unpack out) ('@' `BC.notElem` out)
+          assertBool ("Unexpected descriptions:\n" ++ BC.unpack out) $
+            all (`isInfixOf` BC.unpack out) ["for EUR -3650.00 over", "for EUR -1825.00 over"]
+      , testCase "compounded interest stays cost-free" $ do
+          -- After compounding 10.00, 21 days on 1835 = 10.5575, shown as 10.56.
+          out <- successfulOutput $ reviewArguments "review-costed-repayment" "Liabilities:Loan"
+            ["--act", "--annual=0.1", "--until=2023-02-01"]
+          interestSummary out @?= [("2023-01-11", 10, "EUR -10.00"), ("2023-02-01", 21, "EUR -10.56")]
+          assertBool ("Generated interest mentions a cost:\n" ++ BC.unpack out) ('@' `BC.notElem` out)
+      , testCase "verbose output keeps the original costs" $ do
+          out <- successfulOutput $ filter (/= "--quiet") $ reviewArguments "review-costed-repayment"
+            "Liabilities:Interest" ["--act", "--annual=0.1", "--until=2023-02-01"]
+          assertBool ("Input transactions lost their costs:\n" ++ BC.unpack out) $
+            all (`isInfixOf` BC.unpack out) ["@ USD 1.00", "@@ USD 2007.50"]
+      ]
+  , testCase "verbose output echoes matching transactions only" $ do
+      let invoke flags = successfulOutput $ arguments "boundaries" "Liabilities:Loan"
+            "Liabilities:Interest" (["--annual=0.05", "--act"] ++ flags)
+      verbose <- BC.unpack <$> invoke []
+      quiet <- BC.unpack <$> invoke ["--quiet"]
+      assertBool "--verbose echoed a transaction without the interest account"
+        (not ("Unrelated transaction" `isInfixOf` verbose))
+      assertBool "--verbose omitted a matching transaction"
+        (all (`isInfixOf` verbose) ["Loan", "Payment after year end", "Leap day payment"])
+      assertBool "--quiet printed an input transaction" (not ("Payment" `isInfixOf` quiet))
+  ]
+  where
+    monthEnds = [ "2023-" ++ pad m ++ "-" ++ (if m == 2 then "28" else "30") | m <- [1 .. 12 :: Int] ]
+    pad m = (if m < 10 then "0" else "") ++ show m
+
+reviewArguments :: String -> String -> [String] -> [String]
+reviewArguments fixture target flags = arguments fixture "Liabilities:Loan" target ("--quiet" : flags)
+
+-- | Extract (date, days, first posting amount) from each generated interest
+-- transaction, independent of column alignment.
+interestSummary :: B.ByteString -> [(String, Int, String)]
+interestSummary = go . lines . BC.unpack
+  where
+    go (header : posting : rest)
+      | " interest for " `isInfixOf` header
+      , [n, "days"] <- drop (length (words header) - 2) (words header) =
+          (takeWhile (/= ' ') header, read n, unwords (drop 1 (words posting))) : go rest
+    go (_ : rest) = go rest
+    go [] = []
