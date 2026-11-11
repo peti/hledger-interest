@@ -10,7 +10,7 @@ Category:               Finance
 Build-type:             Simple
 Cabal-version:          2.0
 Extra-source-files:     README.md
-                        CHANGELOG.md
+Extra-doc-files:        CHANGELOG.md
                         tests/fixtures/*.journal
                         tests/fixtures/*.rates
                         tests/golden/*.golden
@@ -107,8 +107,8 @@ Description:
  > Default: post at transactions, rate-period ends, and year ends.
  >   -h          --help                      print this message and exit
  >   -V          --version                   show version number and exit
- >   -v          --verbose                   echo input ledger to stdout (default)
- >   -q          --quiet                     don't echo input ledger to stdout
+ >   -v          --verbose                   print matching input transactions and generated interest (default)
+ >   -q          --quiet                     print generated interest only
  >               --today                     alias for --until=today
  >               --until=DATE                compute interest through DATE (YYYY-MM-DD or today);
  >                                           exclude transactions with later effective dates
@@ -147,7 +147,7 @@ Executable hledger-interest
   default-language:     Haskell2010
   hs-source-dirs:       src
   Main-is:              hledger-interest.hs
-  Build-depends:        base >= 3 && < 5, hledger-lib >= 1.32 && < 1.53, time, mtl, Decimal, text, megaparsec >= 7
+  Build-depends:        base >= 4.9 && < 5, hledger-lib >= 1.32 && < 1.53, time, mtl, Decimal, text, megaparsec >= 7
   other-modules:        Hledger.Interest
                         Hledger.Interest.DayCountConvention
                         Hledger.Interest.Rate

@@ -21,8 +21,8 @@ Display the available command-line options with `hledger-interest --help`:
     Default: post at transactions, rate-period ends, and year ends.
       -h          --help                      print this message and exit
       -V          --version                   show version number and exit
-      -v          --verbose                   echo input ledger to stdout (default)
-      -q          --quiet                     don't echo input ledger to stdout
+      -v          --verbose                   print matching input transactions and generated interest (default)
+      -q          --quiet                     print generated interest only
                   --today                     alias for --until=today
                   --until=DATE                compute interest through DATE (YYYY-MM-DD or today);
                                               exclude transactions with later effective dates

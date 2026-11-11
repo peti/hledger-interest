@@ -54,8 +54,8 @@ options :: [OptDescr (Options -> Options)]
 options =
  [ Option ['h'] ["help"]              (NoArg (\o -> o { optShowHelp = True }))                             "print this message and exit"
  , Option ['V'] ["version"]           (NoArg (\o -> o { optShowVersion = True }))                          "show version number and exit"
- , Option ['v'] ["verbose"]           (NoArg (\o -> o { optVerbose = True }))                              "echo input ledger to stdout (default)"
- , Option ['q'] ["quiet"]             (NoArg (\o -> o { optVerbose = False }))                             "don't echo input ledger to stdout"
+ , Option ['v'] ["verbose"]           (NoArg (\o -> o { optVerbose = True }))                              "print matching input transactions and generated interest (default)"
+ , Option ['q'] ["quiet"]             (NoArg (\o -> o { optVerbose = False }))                             "print generated interest only"
  , Option []    ["today"]             (NoArg (\o -> o { optBalanceUntil = Just "today" }))                 "alias for --until=today"
  , Option []    ["until"]             (ReqArg (\d o -> o { optBalanceUntil = Just d }) "DATE")              "compute interest through DATE (YYYY-MM-DD or today);\nexclude transactions with later effective dates"
  , Option []    ["post-on-transactions"] (NoArg (\o -> o { optPostingMode = PostOnTransactions }))                        "post only at transactions (and at --until/--today);\nskip rate-period and automatic year-end postings;\noverrides --post-on-rate-changes"
