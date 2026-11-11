@@ -4,6 +4,7 @@ import Data.Time.Calendar
 import Data.Time.Calendar.OrdinalDate
 import Data.Decimal
 import Data.List (sortOn, find)
+import Data.Maybe (fromMaybe)
 
 type Rate = Day -> (Day,Decimal)
 
@@ -60,14 +61,29 @@ bgb288 = basiszins (5/100)
 
 basiszins :: Decimal -> Rate
 basiszins r date =
-  case dropWhile (\(_,to',_) -> to' < date) basiszinsPeriods of
-    (_,to,p) : _ -> (to, r + p)
-    [] -> error ("hledger-interest: the BGB base rate after " ++ show lastEnd ++
-                 " is not known yet; please update basiszinsTable in Hledger/Interest/Rate.hs")
+  case tableRate basiszinsPeriods date of
+    Just (to, p) -> (to, r + p)
+    Nothing      -> error ("hledger-interest: the BGB base rate after " ++ show lastEnd ++
+                           " is not known yet; please update basiszinsTable in Hledger/Interest/Rate.hs")
   where
     lastEnd = case reverse basiszinsPeriods of
                 (_,to,_) : _ -> to
                 []           -> error "basiszinsTable is empty"
+
+-- | Find the period of a (from, to, rate) table that has not ended yet at
+-- the given date, and return its end date and rate.
+tableRate :: [(Day, Day, Decimal)] -> Day -> Maybe (Day, Decimal)
+tableRate table date =
+  case dropWhile (\(_,to,_) -> to < date) table of
+    (_,to,p) : _ -> Just (to, p)
+    []           -> Nothing
+
+-- | Like 'tableRate', but fail with an error message if the table does not
+-- cover the given date.
+tableRate' :: String -> [(Day, Day, Decimal)] -> Rate
+tableRate' name table date =
+  fromMaybe (error ("hledger-interest: no " ++ name ++ " interest rate is known for " ++ show date))
+            (tableRate table date)
 
 -- | Turn the start dates of 'basiszinsTable' into (from, to, rate) periods.
 -- Each period ends the day before the next one starts; the last one is
@@ -135,9 +151,7 @@ basiszinsTable =
   ]
 
 ingDiba :: Rate
-ingDiba date = (to, p)
-  where
-    (_,to,p) = head (dropWhile (\(_,to',_) -> to' < date) ingDibaTable)
+ingDiba = tableRate' "ING-DiBa" ingDibaTable
 
 ingDibaTable :: [(Day, Day, Decimal)]
 ingDibaTable =
@@ -148,9 +162,7 @@ ingDibaTable =
   ]
 
 db24 :: Rate
-db24 date = (to, p)
-  where
-    (_,to,p) = head (dropWhile (\(_,to',_) -> to' < date) db24Table)
+db24 = tableRate' "Deutsche Bank 24" db24Table
 
 db24Table :: [(Day, Day, Decimal)]
 db24Table =
