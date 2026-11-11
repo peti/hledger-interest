@@ -51,12 +51,11 @@ main = defaultMain $ testGroup "Independent calculations"
           -- No intermediate posting: 1 non-leap-year day plus 2 leap-year
           -- days earn 1 + 365/183 = 548/183 on unchanged principal.
           let cfg = baseConfig { targetAccount = "Assets:Loan"
-                               , postAtYearEnd = atYearEnd
-                               , postOnTransactions = transactionsOnly }
+                               , postingMode = mode }
           assertInterest cfg (compute cfg [(day 2023 12 30, 3650)] (day 2024 1 2))
             [(day 2024 1 2, 548 % 183)]
-      | (name, atYearEnd, transactionsOnly) <-
-          [("rate-change posting", False, False), ("transaction-only posting", True, True)]
+      | (name, mode) <-
+          [("rate-change posting", PostOnRateChanges), ("transaction-only posting", PostOnTransactions)]
       ]
   , testGroup "Integrated day counts"
       [ testCase name $ do
@@ -83,7 +82,7 @@ main = defaultMain $ testGroup "Independent calculations"
           assertInterest cfg (compute cfg [(day 2023 1 1, 3600)] (day 2023 1 20))
             [(day 2023 1 10, 9), (day 2023 1 20, 20.05)]
       , testCase "deferred interest combines rates without compounding" $ do
-          let cfg = rateChangeConfig { targetAccount = "Assets:Loan", postOnTransactions = True }
+          let cfg = rateChangeConfig { targetAccount = "Assets:Loan", postingMode = PostOnTransactions }
           assertInterest cfg (compute cfg [(day 2023 1 1, 3600)] (day 2023 1 20))
             [(day 2023 1 20, 29)]
       , testCase "dates before the first rate earn zero" $ do
@@ -120,7 +119,7 @@ main = defaultMain $ testGroup "Independent calculations"
           -- which displays as 0.01 rather than two separately rounded zeros.
           let cfg = baseConfig { dayCountConvention = diff30E_360
                                , interestRate = scheduled [(day 2023 1 1, 0.0144), (day 2023 1 3, 0.0144)]
-                               , targetAccount = "Assets:Loan", postOnTransactions = True }
+                               , targetAccount = "Assets:Loan", postingMode = PostOnTransactions }
               txns = compute cfg [(day 2023 1 1, 100)] (day 2023 1 3)
           assertInterest cfg txns [(day 2023 1 3, 0.008)]
           assertBool "The combined posting should display EUR 0.01"
@@ -150,8 +149,7 @@ baseConfig = Config
   , targetAccount = "Assets:Interest"
   , dayCountConvention = diffAct
   , interestRate = constant 0.1
-  , postOnTransactions = False
-  , postAtYearEnd = True
+  , postingMode = PostAtAllBoundaries
   }
 
 rateChangeConfig :: Config

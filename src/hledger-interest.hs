@@ -31,8 +31,7 @@ data Options = Options
   , optDCC              :: Maybe DayCountConvention
   , optRate             :: Either String RateInput
   , optBalanceUntil     :: Maybe String
-  , optPostOnTxns       :: Bool
-  , optPostOnRateChanges :: Bool
+  , optPostingMode      :: PostingMode
   , optIgnoreAssertions :: Bool
   }
 
@@ -47,8 +46,7 @@ defaultOptions = Options
   , optDCC              = Nothing
   , optRate             = Left "no interest rate specified\n"
   , optBalanceUntil     = Nothing
-  , optPostOnTxns       = False
-  , optPostOnRateChanges = False
+  , optPostingMode      = PostAtAllBoundaries
   , optIgnoreAssertions = False
   }
 
@@ -60,8 +58,8 @@ options =
  , Option ['q'] ["quiet"]             (NoArg (\o -> o { optVerbose = False }))                             "don't echo input ledger to stdout"
  , Option []    ["today"]             (NoArg (\o -> o { optBalanceUntil = Just "today" }))                 "alias for --until=today"
  , Option []    ["until"]             (ReqArg (\d o -> o { optBalanceUntil = Just d }) "DATE")              "compute interest through DATE (YYYY-MM-DD or today);\nexclude transactions with later effective dates"
- , Option []    ["post-on-transactions"] (NoArg (\o -> o { optPostOnTxns = True }))                        "post only at transactions (and at --until/--today);\nskip rate-period and automatic year-end postings;\noverrides --post-on-rate-changes"
- , Option []    ["post-on-rate-changes"] (NoArg (\o -> o { optPostOnRateChanges = True }))                     "post at transactions and rate-period ends;\nskip automatic year-end postings;\n--post-on-transactions takes precedence;\n--until/--today also post on the final day"
+ , Option []    ["post-on-transactions"] (NoArg (\o -> o { optPostingMode = PostOnTransactions }))                        "post only at transactions (and at --until/--today);\nskip rate-period and automatic year-end postings;\noverrides --post-on-rate-changes"
+ , Option []    ["post-on-rate-changes"] (NoArg (\o -> o { optPostingMode = max PostOnRateChanges (optPostingMode o) }))                     "post at transactions and rate-period ends;\nskip automatic year-end postings;\n--post-on-transactions takes precedence;\n--until/--today also post on the final day"
  , Option ['f'] ["file"]              (ReqArg (\f o -> o { optInput = f : optInput o }) "FILE")            "input ledger file (pass '-' for stdin)\ndefault: $LEDGER_FILE or ~/.hledger.journal"
  , Option ['s'] ["source"]            (ReqArg (\a o -> o { optSourceAcc = a }) "ACCOUNT")                  "interest source account"
  , Option ['t'] ["target"]            (ReqArg (\a o -> o { optTargetAcc = a }) "ACCOUNT")                  "interest target account"
@@ -142,8 +140,7 @@ run = do
             , targetAccount = T.pack (optTargetAcc opts)
             , dayCountConvention = dcc
             , interestRate = rate
-            , postOnTransactions = optPostOnTxns opts
-            , postAtYearEnd = not (optPostOnRateChanges opts)
+            , postingMode = optPostingMode opts
             }
   when (null matching) $ commandLineError ("no transactions found for account " ++ T.unpack interestAcc ++ "\n")
   let ts' = runComputer cfg $ do

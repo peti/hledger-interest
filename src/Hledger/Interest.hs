@@ -1,6 +1,6 @@
 module Hledger.Interest
   ( Computer, runComputer
-  , Config(..)
+  , Config(..), PostingMode(..)
   , InterestState(..), nullInterestState
   , processTransaction, computeInterest
   , module Hledger.Interest.DayCountConvention
@@ -26,18 +26,20 @@ runComputer :: Config -> Computer () -> [Transaction]
 runComputer cfg f = ts
   where ((),_,ts) = runRWS f cfg nullInterestState
 
+-- | Increasingly restrictive posting policies. This ordering lets the CLI
+-- combine flags with 'max', so transaction-only posting always takes precedence.
+data PostingMode = PostAtAllBoundaries | PostOnRateChanges | PostOnTransactions
+  deriving (Eq, Ord, Show)
+
 data Config = Config
   { interestAccount :: AccountName
   , sourceAccount :: AccountName
   , targetAccount :: AccountName
   , dayCountConvention :: DayCountConvention
   , interestRate :: Rate
-  , postOnTransactions :: Bool
-    -- ^ Post accrued interest only on transaction dates rather than at the
-    -- end of rate periods or years. Overrides 'postAtYearEnd'.
-  , postAtYearEnd :: Bool
-    -- ^ Post at year ends as well as rate changes and transaction dates.
-    -- Actual-day calculation still splits at year ends when this is disabled.
+  , postingMode :: PostingMode
+    -- ^ Select automatic posting boundaries. Transactions and an explicit
+    -- cutoff always post; actual-day calculations split at year ends in all modes.
   }
 
 data InterestState = InterestState
@@ -80,15 +82,14 @@ accrueInterest day = do
       then modify (\st -> st { balancedUntil = succ day })
       else do
         rate <- asks interestRate
-        onTransactionsOnly <- asks postOnTransactions
-        atYearEnd <- asks postAtYearEnd
+        mode <- asks postingMode
         yearDays <- daysInYear from
         let (endOfPeriod,ratePerAnno) = rate from
             endOfYear = yearEnd from
             -- Fixed 360-day conventions need no internal year split. Avoiding
             -- one also preserves their day counts across December 31st.
             yearLimit
-              | (atYearEnd && not onTransactionsOnly) || yearDays /= 360 = endOfYear
+              | mode == PostAtAllBoundaries || yearDays /= 360 = endOfYear
               | otherwise = day
             to = minimum [day, endOfPeriod, yearLimit]
             newFrom = succ to
@@ -103,9 +104,11 @@ accrueInterest day = do
                           })
         -- Internal calendar-year splits do not change the principal unless
         -- the posting policy calls for a posting at that boundary.
-        when (not onTransactionsOnly &&
-              (to == day || to == endOfPeriod || (atYearEnd && to == endOfYear))) $
-          postInterest to (Just ratePerAnno)
+        let shouldPost = case mode of
+              PostAtAllBoundaries -> True
+              PostOnRateChanges -> to == day || to == endOfPeriod
+              PostOnTransactions -> False
+        when shouldPost (postInterest to (Just ratePerAnno))
         when (newFrom <= day) (accrueInterest day)
 
 -- | Post all accrued interest as one transaction on the given day. The
