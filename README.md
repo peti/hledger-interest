@@ -139,9 +139,11 @@ versus separate interest accounts, deferred posting, zero and negative
 rates, and verbose output. Additional cases cover secondary dates,
 literal account names, Unicode,
 the start of each historical schedule, dates outside the former coverage
-limits, and invalid arguments. The historical BGB288, DB24, and ING-DiBa
-data live only in `tests/HistoricalRates.hs`; tests pass them through
-`--schedule` with explicit day-count flags. These are fixed regression snapshots.
+limits, and invalid arguments. Historical BGB288 rates live in
+`tests/fixtures/bgb288.rates` and are read with `--schedule-file`. DB24 and
+ING-DiBa schedules are defined in `tests/HistoricalRates.hs` and passed
+through `--schedule`. All use explicit day-count flags and are fixed
+regression snapshots.
 The DB24 case uses `--post-on-rate-changes` and reproduces the original
 built-in mode's output exactly. Tests also cover rate aliases and posting
 flag precedence across all four day-count conventions.
