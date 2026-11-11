@@ -1,0 +1,7 @@
+2023-12-30 Loan
+    Assets:Bank  EUR 1000000.00
+    Liabilities:Loan
+
+2024-01-02 Payment
+    Assets:Bank  EUR -100.00
+    Liabilities:Loan

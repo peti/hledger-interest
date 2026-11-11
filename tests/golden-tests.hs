@@ -2,6 +2,8 @@ module Main (main) where
 
 import HistoricalRates (historicalModels)
 
+import Control.Monad (forM_, (>=>))
+
 import qualified Data.ByteString.Lazy as B
 import qualified Data.ByteString.Lazy.Char8 as BC
 import System.Exit (ExitCode(..))
@@ -44,7 +46,7 @@ main = defaultMain $ testGroup "CLI regression"
            (arguments "boundaries" "Liabilities:Loan" "Liabilities:Interest"
              ["--act", "--" ++ flag ++ "=bogus"])
            ("invalid value for --" ++ flag ++ ": bogus")
-       | flag <- ["constant", "annual", "annual-schedule"]
+       | flag <- ["constant", "annual", "schedule", "annual-schedule"]
        ] ++
        [ failureCase "abbreviated-account"
            (arguments "boundaries" "Loan" "Liabilities:Interest" ["--annual=0.05", "--act"])
@@ -58,7 +60,38 @@ main = defaultMain $ testGroup "CLI regression"
             "--target=Liabilities:Interest", "--act", "--annual=bogus", "Liabilities:Loan"]
            "invalid value for --annual: bogus"
        ])
+  , testGroup "rate aliases"
+      [ testCase (mode ++ "-" ++ convention) $ do
+          let invoke rate = successfulOutput $ arguments "boundaries" "Liabilities:Loan"
+                "Liabilities:Loan" ([rate, flag, "--quiet"] ++ postingFlags)
+              rates = "[(2023-01-01,0.05)]"
+          expected <- invoke ("--schedule=" ++ rates)
+          forM_ ["--annual-schedule=" ++ rates, "--constant=0.05", "--annual=0.05"]
+            (invoke >=> (@?= expected))
+      | (mode, postingFlags) <- postingModes
+      , (convention, flag) <- dayCounts
+      ]
+  , testGroup "posting flag precedence"
+      [ testCase convention $ do
+          let invoke flags = successfulOutput $ arguments "boundaries" "Liabilities:Loan"
+                "Liabilities:Loan" ([schedule, flag, "--quiet"] ++ flags)
+          expected <- invoke ["--post-on-transactions"]
+          invoke ["--post-on-transactions", "--no-year-end-posting"] >>= (@?= expected)
+          invoke ["--no-year-end-posting", "--post-on-transactions"] >>= (@?= expected)
+      | (convention, flag) <- dayCounts
+      ]
   ]
+
+postingModes :: [(String, [String])]
+postingModes = [("default", []), ("no-year-end", ["--no-year-end-posting"]),
+                ("transactions", ["--post-on-transactions"])]
+
+dayCounts :: [(String, String)]
+dayCounts = [("act", "--act"), ("30-360", "--30-360"),
+             ("30E-360", "--30E-360"), ("30E-360isda", "--30E-360isda")]
+
+schedule :: String
+schedule = "--schedule=[(2023-02-15,0.05),(2023-07-01,0.07),(2024-02-29,0.03)]"
 
 -- Capture bytes directly, preserving Unicode and avoiding locale-dependent decoding.
 runCLI :: [String] -> IO (ExitCode, B.ByteString, B.ByteString)
@@ -71,11 +104,15 @@ arguments fixture account target args =
 
 goldenCase :: String -> String -> String -> String -> [String] -> TestTree
 goldenCase name fixture account target args =
-  goldenVsString name ("tests/golden/" ++ name ++ ".golden") $ do
-    (status, out, err) <- runCLI (arguments fixture account target args)
-    status @?= ExitSuccess
-    err @?= B.empty
-    pure out
+  goldenVsString name ("tests/golden/" ++ name ++ ".golden") $
+    successfulOutput (arguments fixture account target args)
+
+successfulOutput :: [String] -> IO B.ByteString
+successfulOutput args = do
+  (status, out, err) <- runCLI args
+  status @?= ExitSuccess
+  err @?= B.empty
+  pure out
 
 failureCase :: String -> [String] -> String -> TestTree
 failureCase name args message = testCase name $ do
@@ -90,10 +127,21 @@ cases =
   [ (model ++ "-" ++ convention, "boundaries", principal, [rate, flag, "--quiet"])
   | (model, rate) <- [("constant", "--constant=0.05"), ("annual", "--annual=0.05"),
                       ("schedule", schedule)]
-  , (convention, flag) <- [("act", "--act"), ("30-360", "--30-360"),
-                           ("30E-360", "--30E-360"), ("30E-360isda", "--30E-360isda")]
+  , (convention, flag) <- dayCounts
   ] ++
-  [ ("schedule-transactions-only", "boundaries", principal,
+  [ ("schedule-no-year-end-" ++ convention, "boundaries", principal,
+      [schedule, flag, "--quiet", "--no-year-end-posting"])
+  | (convention, flag) <- dayCounts
+  ] ++
+  [ ("no-year-end-leap-" ++ convention, "leap-crossing", principal,
+      ["--annual=0.05", flag, "--quiet", "--no-year-end-posting"])
+  | (convention, flag) <- dayCounts
+  ] ++
+  [ ("rate-change-at-year-end", "leap-crossing", principal,
+      ["--schedule=[(2023-01-01,0.05),(2024-01-01,0.07)]", "--act", "--quiet", "--no-year-end-posting"])
+  , ("transaction-at-year-end", "year-end-transaction", principal,
+      ["--annual=0.05", "--act", "--quiet", "--no-year-end-posting"])
+  , ("schedule-transactions-only", "boundaries", principal,
       [schedule, "--act", "--quiet", "--post-on-transactions"])
   , ("annual-separate-account", "boundaries", "Liabilities:Interest",
       ["--annual=0.05", "--act", "--quiet"])
@@ -107,4 +155,3 @@ cases =
   ]
   where
     principal = "Liabilities:Loan"
-    schedule = "--annual-schedule=[(2023-02-15,0.05),(2023-07-01,0.07),(2024-02-29,0.03)]"

@@ -9,10 +9,20 @@
   and an account with no matching transactions produces an error.
 - Remove the built-in BGB288, ING-DiBa, and DB24 modes and their flags.
   Their historical data now live only in the test suite, which supplies
-  them through `--annual-schedule` and explicit day-count flags. Unlike
-  the former modes, schedules earn zero interest before the first entry
-  and keep the last rate indefinitely. DB24 examples now also post at
-  year ends, following the annual-schedule rules.
+  them through `--schedule` and explicit day-count flags. Unlike the former
+  modes, schedules earn zero interest before the first entry and keep the
+  last rate indefinitely. The DB24 example uses `--no-year-end-posting`
+  to reproduce its original output.
+- Add `--schedule`, retaining `--annual-schedule` as an alias. Rate selection
+  is independent of posting frequency: all rates now post automatically at
+  year ends by default, including `--constant` (now equivalent to `--annual`).
+- Add `--no-year-end-posting` to post only at transactions and rate-period
+  ends. `--post-on-transactions` suppresses both automatic posting boundaries
+  and takes precedence when combined with the new flag.
+- Split actual-day calculations at calendar-year boundaries for correct
+  365/366-day denominators in every posting mode, without compounding at
+  internal calculation boundaries. Fixed 360-day conventions can calculate
+  across years without a split when year-end posting is suppressed.
 - Skip rate lookup while the balance is zero, including before the first loan.
 - Report invalid rate arguments and missing account arguments before
   reading the journal, and display computation errors without exception noise.

@@ -10,15 +10,19 @@
     Liabilities:Loan      EUR -124.88
     Expenses:Interest      EUR 124.88
 
-2024-01-15 5% interest for EUR -9855.18 over 194 days
-    Liabilities:Loan      EUR -265.54
-    Expenses:Interest      EUR 265.54
+2023-12-31 5% interest for EUR -9855.18 over 179 days
+    Liabilities:Loan      EUR -245.01
+    Expenses:Interest      EUR 245.01
 
-2024-02-29 5% interest for EUR -10020.72 over 44 days
+2024-01-15 5% interest for EUR -10100.19 over 15 days
+    Liabilities:Loan       EUR -21.04
+    Expenses:Interest       EUR 21.04
+
+2024-02-29 5% interest for EUR -10021.23 over 44 days
     Liabilities:Loan       EUR -61.24
     Expenses:Interest       EUR 61.24
 
-2024-03-31 5% interest for EUR -9981.96 over 30 days
+2024-03-31 5% interest for EUR -9982.47 over 30 days
     Liabilities:Loan       EUR -41.59
     Expenses:Interest       EUR 41.59
 

@@ -111,6 +111,8 @@ Description:
  >               --post-on-transactions      post interest only when the balance changes
  >                                           (and with --today), not at the end of
  >                                           every year or rate period
+ >               --no-year-end-posting       skip automatic year-end postings;
+ >                                           still post at rate changes and transactions
  >   -f FILE     --file=FILE                 input ledger file (pass '-' for stdin)
  >                                           default: $LEDGER_FILE or ~/.hledger.journal
  >   -s ACCOUNT  --source=ACCOUNT            interest source account
@@ -121,10 +123,11 @@ Description:
  >               --30-360                    use '30/360' day counting convention
  >               --30E-360                   use '30E/360' day counting convention
  >               --30E-360isda               use '30E/360isda' day counting convention
- >               --constant=RATE             constant interest rate
- >               --annual=RATE               annual interest rate
- >               --annual-schedule=SCHEDULE  schedule of annual interest rates.
+ >               --constant=RATE             fixed annual interest rate
+ >               --annual=RATE               alias for --constant
+ >               --schedule=SCHEDULE         schedule of annual interest rates.
  >                                           syntax: '[(Date1,Rate1),(Date2,Rate2),...]'
+ >               --annual-schedule=SCHEDULE  alias for --schedule
 
 Source-Repository head
   Type:                 git

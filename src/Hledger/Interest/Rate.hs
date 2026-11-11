@@ -1,7 +1,6 @@
-module Hledger.Interest.Rate ( Rate, perAnno, perAnnoSchedule, constant ) where
+module Hledger.Interest.Rate ( Rate, constant, scheduled, perAnno, perAnnoSchedule ) where
 
 import Data.Time.Calendar
-import Data.Time.Calendar.OrdinalDate
 import Data.Decimal
 import Data.List (sortOn, find)
 
@@ -10,15 +9,17 @@ type Rate = Day -> (Day,Decimal)
 constant :: Decimal -> Rate
 constant rate _ = (day 999999 12 31, rate)
 
+-- | Compatibility aliases; posting boundaries are independent of the rate.
 perAnno :: Decimal -> Rate
-perAnno rate date = (yearEnd date, rate)
+perAnno = constant
 
 perAnnoSchedule :: [(Day,Decimal)] -> Rate
-perAnnoSchedule schedule date = (effectiveUntil, effectiveRate)
+perAnnoSchedule = scheduled
+
+-- | Rate-change boundaries only; calendar-year handling belongs to the computer.
+scheduled :: [(Day,Decimal)] -> Rate
+scheduled schedule date = (endOfPeriod, effectiveRate)
   where
-    effectiveUntil =
-      -- make sure that end date we report does not cross the year boundary
-      min (yearEnd date) endOfPeriod
     (endOfPeriod, effectiveRate) =
       case find (\(fromDate, toDate,  _) -> fromDate<=date && date<=toDate) fromToSchedule of
         -- date precedes the schedule: no interest until the first rate takes effect
@@ -27,7 +28,7 @@ perAnnoSchedule schedule date = (effectiveUntil, effectiveRate)
     beforeSchedule =
       case sortedSchedule of
         (firstDate, _):_ -> pred firstDate
-        []               -> yearEnd date
+        []               -> day 999999 12 31
     fromToSchedule =
       -- Convert the list of (startDate,rate) to (startDate,endDate,rate) intervals, where
       -- the end date of the interval is the day before the start of the next interval,
@@ -40,6 +41,3 @@ perAnnoSchedule schedule date = (effectiveUntil, effectiveRate)
 
 day :: Integer -> Int -> Int -> Day
 day = fromGregorian
-
-yearEnd :: Day -> Day
-yearEnd date = day (fst (toOrdinalDate date)) 12 31

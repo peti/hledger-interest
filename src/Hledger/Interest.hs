@@ -34,7 +34,10 @@ data Config = Config
   , interestRate :: Rate
   , postOnTransactions :: Bool
     -- ^ Post accrued interest only on transaction dates rather than at the
-    -- end of every rate period (e.g. at every year end with 'perAnno').
+    -- end of rate periods or years. Overrides 'postAtYearEnd'.
+  , postAtYearEnd :: Bool
+    -- ^ Post at year ends as well as rate changes and transaction dates.
+    -- Actual-day calculation still splits at year ends when this is disabled.
   }
 
 data InterestState = InterestState
@@ -77,21 +80,32 @@ accrueInterest day = do
       then modify (\st -> st { balancedUntil = succ day })
       else do
         rate <- asks interestRate
+        onTransactionsOnly <- asks postOnTransactions
+        atYearEnd <- asks postAtYearEnd
+        yearDays <- daysInYear from
         let (endOfPeriod,ratePerAnno) = rate from
-            to = min day endOfPeriod
+            endOfYear = yearEnd from
+            -- Fixed 360-day conventions need no internal year split. Avoiding
+            -- one also preserves their day counts across December 31st.
+            yearLimit
+              | (atYearEnd && not onTransactionsOnly) || yearDays /= 360 = endOfYear
+              | otherwise = day
+            to = minimum [day, endOfPeriod, yearLimit]
             newFrom = succ to
         when (to < from) $
           error "hledger-interest: interest rate period ends before its start"
         modify (\st -> st { balancedUntil = newFrom })
         diff <- asks dayCountConvention
-        yearDays <- daysInYear to
         let days = (from `diff` to) + 1
             interest = mapMixedAmount (\a -> a { aquantity = (aquantity a * ratePerAnno) / fromInteger yearDays * fromInteger days }) bal
         modify (\st -> st { accruedDays = accruedDays st + days
                           , accruedInterest = accruedInterest st + interest
                           })
-        onTransactionsOnly <- asks postOnTransactions
-        unless onTransactionsOnly (postInterest to (Just ratePerAnno))
+        -- Internal calendar-year splits do not change the principal unless
+        -- the posting policy calls for a posting at that boundary.
+        when (not onTransactionsOnly &&
+              (to == day || to == endOfPeriod || (atYearEnd && to == endOfYear))) $
+          postInterest to (Just ratePerAnno)
         when (newFrom <= day) (accrueInterest day)
 
 -- | Post all accrued interest as one transaction on the given day. The
@@ -110,6 +124,9 @@ daysInYear :: Day -> Computer Integer
 daysInYear now = asks dayCountConvention >>= \diff -> return (day1 `diff` day2)
   where day1 = fromGregorian (fst (toOrdinalDate now)) 1 1
         day2 = fromGregorian (succ (fst (toOrdinalDate now))) 1 1
+
+yearEnd :: Day -> Day
+yearEnd date = fromGregorian (fst (toOrdinalDate date)) 12 31
 
 -- | Create the transaction for the given interest, which was accrued over
 -- the given number of days.

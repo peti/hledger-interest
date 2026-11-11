@@ -19,25 +19,31 @@ An overview over the available run-time options can be displayed by
 running "`hledger-interest --help`":
 
     Usage: hledger-interest [OPTION...] ACCOUNT
+      -h          --help                      print this message and exit
+      -V          --version                   show version number and exit
       -v          --verbose                   echo input ledger to stdout (default)
       -q          --quiet                     don't echo input ledger to stdout
                   --today                     compute interest up until today
                   --post-on-transactions      post interest only when the balance changes
                                               (and with --today), not at the end of
                                               every year or rate period
+                  --no-year-end-posting       skip automatic year-end postings;
+                                              still post at rate changes and transactions
       -f FILE     --file=FILE                 input ledger file (pass '-' for stdin)
                                               default: $LEDGER_FILE or ~/.hledger.journal
       -s ACCOUNT  --source=ACCOUNT            interest source account
       -t ACCOUNT  --target=ACCOUNT            interest target account
+      -I          --ignore-assertions         ignore any failing balance assertions
                   --act                       use 'act/act' day counting convention
                                               (Actual/Actual ISDA; see README)
                   --30-360                    use '30/360' day counting convention
                   --30E-360                   use '30E/360' day counting convention
                   --30E-360isda               use '30E/360isda' day counting convention
-                  --constant=RATE             constant interest rate
-                  --annual=RATE               annual interest rate
-                  --annual-schedule=SCHEDULE  schedule of annual interest rates.
+                  --constant=RATE             fixed annual interest rate
+                  --annual=RATE               alias for --constant
+                  --schedule=SCHEDULE         schedule of annual interest rates.
                                               syntax: '[(Date1,Rate1),(Date2,Rate2),...]'
+                  --annual-schedule=SCHEDULE  alias for --schedule
 
 When run, hledger-interest reads the [ledger
 file](http://hledger.org/MANUAL.html#file-format) designated by the
@@ -64,13 +70,11 @@ where `days` is the length of the period, both ends included, and
 `days-in-year` is the length of the calendar year in which the period
 ends. Both are counted with the selected convention:
 
-- `--act` counts actual calendar days, so a year has 365 or 366 days.
-  cross a year boundary, which makes this the [Actual/Actual
-  ISDA](https://en.wikipedia.org/wiki/Day_count_convention#Actual/Actual_ISDA)
-  method. It is also the reason why these rates post interest on
-  December 31st of every year (see below). With `--constant`, a period can span
-  several years and is divided by the length of the year it ends in, so
-  the result is only an approximation of Actual/Actual ISDA in that case.
+- `--act` counts actual calendar days. Calculation splits at calendar-year
+  boundaries, using 365 or 366 days for each year. This is the
+  [Actual/Actual ISDA](https://en.wikipedia.org/wiki/Day_count_convention#Actual/Actual_ISDA)
+  method for every rate option. Internal calculation splits do not cause
+  compounding unless interest is actually posted.
 - `--30-360`, `--30E-360`, and `--30E-360isda` count every month as 30
   days and every year as 360 days. They differ in how they treat the
   31st and the end of February; see the [Wikipedia
@@ -79,16 +83,30 @@ ends. Both are counted with the selected convention:
   for the maturity date, because hledger-interest has no notion of
   maturity.
 
-By default, hledger-interest posts the interest at the end of every
-period: on every transaction date, but also on December 31st and on
-every date at which the rate changes. If the interest is credited to the
-interest-bearing account itself, it compounds from then on. Many loans
-and savings accounts compound less often, though, e.g. only when a
-payment is made. With `--post-on-transactions`, interest is still
-computed separately for every year and rate, but posted only on
-transaction dates (and on the final day with `--today`). Since such a
-posting may cover several rates, its description does not mention a
-rate, e.g. for a rate change from 5% to 7% on 2021-12-20:
+Rate selection and posting frequency are independent. By default, interest
+is posted on transaction dates, at the end of each rate period, and on
+December 31st. Crediting interest to the interest-bearing account compounds
+it from the posting date.
+
+| Posting option | Transactions | Rate-period ends | Year ends |
+|---|---|---|---|
+| Default | Yes | Yes | Yes |
+| `--no-year-end-posting` | Yes | Yes | No |
+| `--post-on-transactions` | Yes | No | No |
+
+`--no-year-end-posting` suppresses automatic year-end postings. A transaction
+on December 31st or a new rate taking effect on January 1st still causes a
+posting on December 31st. `--post-on-transactions` takes precedence if both
+flags are supplied, regardless of their order. All modes also post on the
+final day when `--today` is used.
+
+With `--act`, calculations still split internally at year boundaries to
+apply the correct 365/366-day denominator, even when year-end posting is
+suppressed. Fixed 360-day conventions need no internal year split unless
+a year-end posting is requested.
+
+With `--post-on-transactions`, a posting may combine several rates, so its
+description omits the rate, for example:
 
     2022-01-10 interest for -9841.10 USD over 31 days
         Liabilities:Loan       -53.65 USD
@@ -113,10 +131,11 @@ accounts, deferred posting, zero/negative rates, and verbose output.
 Additional cases cover secondary dates, literal account names, Unicode,
 the start of each historical schedule, dates outside the former coverage
 limits, and invalid arguments. The historical BGB288, DB24, and ING-DiBa data live only
-in `tests/HistoricalRates.hs`; tests pass them through `--annual-schedule`
+in `tests/HistoricalRates.hs`; tests pass them through `--schedule`
 with explicit day-count flags. These are fixed regression snapshots.
-DB24 now follows annual-schedule behavior, including year-end postings
-that its former built-in mode omitted.
+The DB24 case uses `--no-year-end-posting` and reproduces the original
+built-in mode's output exactly. Tests also cover rate aliases and posting
+flag precedence across all four day-count conventions.
 Tests deliberately avoid `--today` so results do not depend on the clock.
 
 To add a case, add its argument list to `tests/golden-tests.hs` and, if needed,
@@ -233,18 +252,20 @@ Then interest would develop as follows:
 
 ## Variable annual rates
 
-Use `--annual-schedule` to supply rates and their effective dates, together
+Use `--schedule` to supply rates and their effective dates, together
 with an explicit day-count convention. For example:
 
 ```sh
 hledger-interest -f loan.ledger --act \
-  '--annual-schedule=[(2023-01-01,0.05),(2023-07-01,0.07)]' \
+  '--schedule=[(2023-01-01,0.05),(2023-07-01,0.07)]' \
   --source=Expenses:Interest --target=Liabilities:Loan Liabilities:Loan
 ```
 
 This applies 5% from January 1, 2023, and 7% from July 1, 2023. Dates
 before the first entry earn zero interest, and the last rate continues
 indefinitely. By default, interest is posted at year ends, rate changes,
-and transaction dates. Use `--post-on-transactions` to defer posting as
-explained above. The executable contains no bank-specific or statutory
+and transaction dates. Use `--no-year-end-posting` or
+`--post-on-transactions` to control posting as explained above.
+`--annual-schedule` remains an alias for `--schedule`. Likewise,
+`--annual` is an alias for `--constant`; both specify a fixed annual rate. The executable contains no bank-specific or statutory
 rate tables; supply the appropriate schedule yourself.

@@ -9,13 +9,13 @@ import Data.Time.Calendar (Day, fromGregorian)
 -- keep the final rate indefinitely; they do not enforce the old coverage limits.
 historicalModels :: [(String, [String])]
 historicalModels =
-  [ ("bgb288", ["--act", annualSchedule [(date, base + 5/100) | (date, base) <- basiszinsTable]])
-  , ("ing-diba", ["--act", annualSchedule ingDibaSchedule])
-  , ("db24", ["--30E-360", annualSchedule db24Schedule])
+  [ ("bgb288", ["--act", scheduleArgument [(date, base + 5/100) | (date, base) <- basiszinsTable]])
+  , ("ing-diba", ["--act", scheduleArgument ingDibaSchedule])
+  , ("db24", ["--30E-360", "--no-year-end-posting", scheduleArgument db24Schedule])
   ]
 
-annualSchedule :: [(Day, Decimal)] -> String
-annualSchedule schedule = "--annual-schedule=" ++ show schedule
+scheduleArgument :: [(Day, Decimal)] -> String
+scheduleArgument schedule = "--schedule=" ++ show schedule
 
 day :: Integer -> Int -> Int -> Day
 day = fromGregorian
@@ -85,7 +85,7 @@ ingDibaSchedule =
   , (day 2011 07 15, 175 / 10000)
   ]
 
--- Annual schedules add year-end postings that the old DB24 mode omitted.
+-- Suppressing year-end postings reproduces the original DB24 compounding.
 db24Schedule :: [(Day, Decimal)]
 db24Schedule =
   [ (day 2000 10 06, 638 / 10000)

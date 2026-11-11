@@ -28,6 +28,7 @@ data Options = Options
   , optRate             :: Either String Rate
   , optBalanceToday     :: Bool
   , optPostOnTxns       :: Bool
+  , optPostAtYearEnd    :: Bool
   , optIgnoreAssertions :: Bool
   }
 
@@ -43,6 +44,7 @@ defaultOptions = Options
   , optRate             = Left "no interest rate specified\n"
   , optBalanceToday     = False
   , optPostOnTxns       = False
+  , optPostAtYearEnd    = True
   , optIgnoreAssertions = False
   }
 
@@ -54,6 +56,7 @@ options =
  , Option ['q'] ["quiet"]             (NoArg (\o -> o { optVerbose = False }))                             "don't echo input ledger to stdout"
  , Option []    ["today"]             (NoArg (\o -> o { optBalanceToday = True }))                         "compute interest up until today"
  , Option []    ["post-on-transactions"] (NoArg (\o -> o { optPostOnTxns = True }))                        "post interest only when the balance changes\n(and with --today), not at the end of\nevery year or rate period"
+ , Option []    ["no-year-end-posting"] (NoArg (\o -> o { optPostAtYearEnd = False }))                     "skip automatic year-end postings;\nstill post at rate changes and transactions"
  , Option ['f'] ["file"]              (ReqArg (\f o -> o { optInput = f : optInput o }) "FILE")            "input ledger file (pass '-' for stdin)\ndefault: $LEDGER_FILE or ~/.hledger.journal"
  , Option ['s'] ["source"]            (ReqArg (\a o -> o { optSourceAcc = a }) "ACCOUNT")                  "interest source account"
  , Option ['t'] ["target"]            (ReqArg (\a o -> o { optTargetAcc = a }) "ACCOUNT")                  "interest target account"
@@ -62,9 +65,10 @@ options =
  , Option []    ["30-360"]            (NoArg (\o -> o { optDCC = Just diff30_360 }))                       "use '30/360' day counting convention"
  , Option []    ["30E-360"]           (NoArg (\o -> o { optDCC = Just diff30E_360 }))                      "use '30E/360' day counting convention"
  , Option []    ["30E-360isda"]       (NoArg (\o -> o { optDCC = Just diff30E_360isda }))                  "use '30E/360isda' day counting convention"
- , Option []    ["constant"]          (ReqArg (setRate "--constant" constant) "RATE")   "constant interest rate"
- , Option []    ["annual"]            (ReqArg (setRate "--annual" perAnno) "RATE")    "annual interest rate"
- , Option []    ["annual-schedule"]   (ReqArg (setRate "--annual-schedule" perAnnoSchedule)    "SCHEDULE")    "schedule of annual interest rates.\nsyntax: '[(Date1,Rate1),(Date2,Rate2),...]'"
+ , Option []    ["constant"]          (ReqArg (setRate "--constant" constant) "RATE")                    "fixed annual interest rate"
+ , Option []    ["annual"]            (ReqArg (setRate "--annual" perAnno) "RATE")                        "alias for --constant"
+ , Option []    ["schedule"]          (ReqArg (setRate "--schedule" scheduled) "SCHEDULE")                "schedule of annual interest rates.\nsyntax: '[(Date1,Rate1),(Date2,Rate2),...]'"
+ , Option []    ["annual-schedule"]   (ReqArg (setRate "--annual-schedule" scheduled) "SCHEDULE")         "alias for --schedule"
  ]
 
 setRate :: Read a => String -> (a -> Rate) -> String -> Options -> Options
@@ -120,6 +124,7 @@ run = do
             , dayCountConvention = dcc
             , interestRate = rate
             , postOnTransactions = optPostOnTxns opts
+            , postAtYearEnd = optPostAtYearEnd opts
             }
   when (null ts) $ commandLineError ("no transactions found for account " ++ T.unpack interestAcc ++ "\n")
   thisDay <- getCurrentDay
