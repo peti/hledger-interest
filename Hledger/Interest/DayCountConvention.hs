@@ -33,13 +33,21 @@ diff30E_360 date1 date2 = assert (date1 <= date2) $ mkDiff30_360 (y1, m1, min 30
     (y1,m1,d1) = toGregorian date1
     (y2,m2,d2) = toGregorian date2
 
--- This variant additionally normalizes end-of-months to 30, i.e. there
--- are 30 days between 2003-02-28 and 2003-03-31.
-
+-- | This variant additionally normalizes end-of-months to 30, i.e. there
+-- are 30 days between 2003-02-28 and 2003-03-31. (Strict 30E/360 ISDA
+-- exempts a February month-end that is the maturity date; we have no
+-- notion of maturity, so that exception is not applied.)
+--
+-- >>> diff30E_360isda (fromGregorian 2003 2 28) (fromGregorian 2003 3 31)
+-- 30
+-- >>> diff30E_360isda (fromGregorian 2023 1 31) (fromGregorian 2023 2 15)
+-- 15
+-- >>> diff30E_360isda (fromGregorian 2023 1 15) (fromGregorian 2023 2 28)
+-- 45
 diff30E_360isda :: DayCountConvention
 diff30E_360isda date1 date2 = assert (date1 <= date2) $ mkDiff30_360 (y1, m1, d1') (y2, m2, d2')
   where
     (y1,m1,d1) = toGregorian date1
     (y2,m2,d2) = toGregorian date2
-    d1' = if d1 > 30 || d1 == gregorianMonthLength y1 m1 then 30 else d1
-    d2' = if d1 > 30 || d2 == gregorianMonthLength y2 m2 then 30 else d2
+    d1' = if d1 == gregorianMonthLength y1 m1 then 30 else d1
+    d2' = if d2 == gregorianMonthLength y2 m2 then 30 else d2
