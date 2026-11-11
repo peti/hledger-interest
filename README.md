@@ -121,6 +121,27 @@ description omits the rate, for example:
         Liabilities:Loan       -53.65 USD
         Expenses:Interest       53.65 USD
 
+## Rounding and precision
+
+Interest is calculated using decimal arithmetic at its available precision.
+Amounts are not explicitly rounded to cents when they accrue or are posted.
+If interest is posted to the interest-bearing account, the full computed
+quantity becomes part of the principal for subsequent calculations.
+Deferred postings sum the unrounded accrued amounts before displaying them.
+
+Display precision is separate from calculation precision. Generated postings
+show at least two decimal places, retaining higher display precision from
+the input. Formatting and display rounding follow `hledger-lib`'s rendering
+rules; they do not change the quantity used internally. For example, an
+interest amount of EUR 0.004 can be displayed as EUR 0.00 while EUR 0.004
+is still added to the internal principal when compounding.
+
+Consequently, later displayed balances and interest can differ slightly
+from calculations made using only the printed amounts. Reading the output
+journal back in also uses those printed amounts, not the undisplayed
+fractions. The tool does not implement a policy of rounding each interest
+posting to the currency's smallest unit before compounding.
+
 ## Calculation cutoff
 
 Use `--until=YYYY-MM-DD` to compute interest through a specific date,

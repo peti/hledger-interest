@@ -142,7 +142,8 @@ mkTrans day days interest ratePerAnno = do
           }
       -- balance might have been an exact amount, in which case its precision might
       -- be set to 0 decimal places. We ensure that interest is displayed with at least
-      -- two decimal points
+      -- two decimal places. This changes rendering only: the full computed
+      -- quantity is posted and, when applicable, compounded (see README).
       pTarget = nullposting
           { paccount       = targetAcc
           , pamount        = mapMixedAmount (amountSetPrecisionMin 2) interest
