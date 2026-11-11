@@ -1,3 +1,5 @@
+# Verify the first BGB288 rate takes effect on its exact start date.
+# A loan just before 2002-01-01 earns interest on January 1st and 2nd only.
 2001-12-31 Loan
     Assets:Bank  EUR 10000.00
     Liabilities:Loan

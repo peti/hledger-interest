@@ -1,1 +1,3 @@
+# Verify calendar dates are validated rather than clipped or normalised.
+# Use February 30th with an otherwise valid fractional rate.
 2026-02-30 0.05

@@ -1,3 +1,5 @@
+# Verify historical schedules keep their final rate beyond the old coverage limits.
+# A loan and repayment in year 3000 exercise that rate without intervening years.
 3000-01-01 Loan after the former built-in coverage limits
     Assets:Bank  EUR 10000.00
     Liabilities:Loan

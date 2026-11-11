@@ -1,3 +1,5 @@
+# Verify file input matches inline-schedule goldens for all day counts and posting modes.
+# Unsorted mixed date/rate formats and each comment form exercise parsing and sorting.
 # Historical rates — unsorted rates exercise sorting as well as parsing.
   ; Indented comment lines are allowed.
 	# A tab-indented comment is also allowed.

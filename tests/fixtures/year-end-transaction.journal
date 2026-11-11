@@ -1,3 +1,5 @@
+# Verify suppressing automatic year-end postings still posts on a December 31st transaction.
+# Place a repayment at year end between the initial loan and a January repayment.
 2023-12-30 Loan
     Assets:Bank  EUR 10000.00
     Liabilities:Loan

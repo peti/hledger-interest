@@ -1,1 +1,3 @@
+# Verify a tab cannot indent a schedule entry.
+# Prepend a literal tab to an otherwise valid date and rate.
 	2026-01-01 0.05

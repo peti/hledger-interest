@@ -1,1 +1,3 @@
+# Verify a schedule rate must be numeric.
+# Put an unparseable word in the rate field after a valid date.
 2026-01-01 bananas

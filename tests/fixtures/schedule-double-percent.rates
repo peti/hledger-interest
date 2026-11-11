@@ -1,1 +1,3 @@
+# Verify the parser rejects a duplicated percentage suffix.
+# The date and numeric value are valid, but 5%% leaves an extra percent sign.
 2026-01-01 5%%

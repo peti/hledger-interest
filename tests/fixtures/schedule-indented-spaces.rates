@@ -1,1 +1,3 @@
+# Verify schedule entries must start in column 1 even when whitespace is ignored elsewhere.
+# Prepend three spaces to an otherwise valid date and rate.
    2026-01-01 0.05

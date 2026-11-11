@@ -1,3 +1,5 @@
+# Reproduce historical BGB288 output using --schedule-file instead of Haskell data.
+# Retain every half-year boundary and the combined base rate plus five points.
 # BGB288 historical regression snapshot, effective dates and annualized rates.
 # Rates already include the BGB247 base rate plus 5 percentage points.
 # Source: https://www.bundesbank.de/de/bundesbank/organisation/agb-und-regelungen/basiszinssatz-607820

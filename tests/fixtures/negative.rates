@@ -1,1 +1,3 @@
+# Verify a signed percentage parses as the equivalent negative fractional rate.
+# One -1% entry predates the journal and must match the -0.01 golden output.
 2020-01-01 -1%

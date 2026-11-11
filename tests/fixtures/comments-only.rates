@@ -1,3 +1,5 @@
+# Verify a schedule with comments and whitespace but no active entries earns zero.
+# Mix indented comment markers with a block containing an invalid entry through EOF.
 # no active entries
   ; another comment
 	* org comment

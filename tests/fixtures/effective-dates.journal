@@ -1,3 +1,5 @@
+# Verify transactions are processed by effective date without overlapping accrual.
+# A secondary date reverses the primary-date ordering of two repayments.
 2023-01-01 Loan
     Assets:Bank  EUR 10000.00
     Liabilities:Loan

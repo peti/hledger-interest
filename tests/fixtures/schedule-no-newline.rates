@@ -1,3 +1,5 @@
+# Verify the last schedule entry is accepted without a final newline.
+# Use the reference schedule and finish with an inline comment; keep EOF unterminated.
 2023-02-15 0.05
 2023-07-01 7%
 2024-02-29 0.03 ; no final newline

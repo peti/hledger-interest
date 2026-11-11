@@ -1,3 +1,5 @@
+# Verify account selection treats punctuation literally and excludes other accounts.
+# Loan(1) is accompanied by a regex lookalike and a subaccount that must not affect it.
 2023-01-01 Loan
     Assets:Bank  EUR 10000.00
     Liabilities:Loan(1)

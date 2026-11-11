@@ -1,3 +1,5 @@
+# Verify the first ING-DiBa rate takes effect on its exact start date.
+# A loan just before 2009-01-01 earns interest on January 1st and 2nd only.
 2008-12-31 Loan
     Assets:Bank  EUR 10000.00
     Liabilities:Loan

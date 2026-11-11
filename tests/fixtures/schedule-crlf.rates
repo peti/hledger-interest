@@ -1,3 +1,5 @@
+# Verify Windows CRLF input produces the same output as the inline schedule.
+# Use the three reference rates, mixing fractions and percentages; preserve CRLF.
 2023-02-15 0.05
 2023-07-01 7%
 2024-02-29 0.03

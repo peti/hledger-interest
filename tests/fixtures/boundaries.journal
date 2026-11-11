@@ -1,3 +1,5 @@
+# Compare rate models, day counts, posting modes, and compounding on one journal.
+# Month/year ends, a leap day, rate-change dates, same-day payments, and an unrelated account expose boundary and filtering errors.
 2023-01-31 Loan
     Assets:Bank          EUR 10000.00
     Liabilities:Loan

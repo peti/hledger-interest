@@ -58,12 +58,12 @@ main = defaultMain $ testGroup "CLI regression"
       ([ failurePrefix fixture (fileArguments ("schedule-" ++ fixture) ["--act"])
            ("tests/fixtures/schedule-" ++ fixture ++ ".rates:" ++ line ++ ":" ++ column)
        | (fixture, line, column) <-
-           [("indented-spaces", "1", "1:"), ("indented-tab", "1", "1:"),
-            ("invalid-date", "1", ""), ("mixed-date-separators", "1", ""),
-            ("invalid-rate", "1", ""), ("missing-rate", "1", ""),
-            ("extra-field", "1", ""), ("inline-hash", "1", ""),
-            ("inline-star", "1", ""), ("double-percent", "1", ""),
-            ("bad-second-line", "2", "1:")]
+           [("indented-spaces", "3", "1:"), ("indented-tab", "3", "1:"),
+            ("invalid-date", "3", ""), ("mixed-date-separators", "3", ""),
+            ("invalid-rate", "3", ""), ("missing-rate", "3", ""),
+            ("extra-field", "3", ""), ("inline-hash", "3", ""),
+            ("inline-star", "3", ""), ("double-percent", "3", ""),
+            ("bad-second-line", "4", "1:")]
        ] ++
        [ failurePrefix "missing-file" (fileArguments "missing" ["--act"])
            "tests/fixtures/missing.rates: "

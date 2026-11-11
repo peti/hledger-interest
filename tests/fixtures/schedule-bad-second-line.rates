@@ -1,2 +1,4 @@
+# Verify a malformed later entry is rejected and reports its actual line number.
+# Follow one valid entry with an entry indented by three spaces.
 2026-01-01 0.05
    2026-02-01 0.07

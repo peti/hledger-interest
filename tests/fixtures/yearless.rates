@@ -1,2 +1,4 @@
+# Verify yearless hledger dates use the current local year.
+# Use slash and dot month/day forms and compare with an explicit-year inline schedule.
 2/15 5%
 7.1 0.07

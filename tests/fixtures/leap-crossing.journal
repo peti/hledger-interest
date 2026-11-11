@@ -1,3 +1,5 @@
+# Verify year-end posting controls and correct denominators across a leap year.
+# A large loan spanning one day of 2023 and two of 2024 makes rounding-sensitive errors visible.
 2023-12-30 Loan
     Assets:Bank  EUR 1000000.00
     Liabilities:Loan

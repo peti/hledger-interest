@@ -1,3 +1,5 @@
+# Verify schedules charge zero interest before their first effective rate.
+# Both transactions precede the first entry in every historical schedule.
 2000-01-01 Loan
     Assets:Bank  EUR 10000.00
     Liabilities:Loan
