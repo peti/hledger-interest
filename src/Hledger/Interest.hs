@@ -1,5 +1,3 @@
-{-# LANGUAGE CPP #-}
-
 module Hledger.Interest
   ( Computer, runComputer
   , Config(..)
@@ -130,7 +128,7 @@ mkTrans day days interest ratePerAnno = do
       -- two decimal points
       pTarget = nullposting
           { paccount       = targetAcc
-          , pamount        = mapMixedAmount (setMinPrecision 2) interest
+          , pamount        = mapMixedAmount (amountSetPrecisionMin 2) interest
           , ptype          = RegularPosting
           , ptransaction   = Just t
           }
@@ -141,20 +139,6 @@ mkTrans day days interest ratePerAnno = do
           , ptransaction   = Just t
           }
   return t
-  where
-#if MIN_VERSION_hledger_lib(1,32,0)
-    setMinPrecision = amountSetPrecisionMin
-#else
-    -- Copy of amountSetPrecisionMin (with amountDisplayPrecision inlined) from
-    -- hledger-lib >= 1.32, which older hledger-lib versions (still allowed by our
-    -- lower bound) do not provide
-    setMinPrecision minp a = amountSetPrecision (Precision $ max minp displayPrecision) a
-      where
-        displayPrecision =
-          case asprecision $ astyle a of
-            Precision n      -> n
-            NaturalPrecision -> decimalPlaces (normalizeDecimal (aquantity a))
-#endif
 
 showPercent :: Decimal -> String
 showPercent r = shows (r * 100) "%"

@@ -14,8 +14,7 @@
   reading the journal, and display computation errors without exception noise.
 - Preserve Unicode output in golden tests, require existing baselines,
   and add regression cases for these fixes.
-- Use hledger's precision helper when available, retaining compatibility
-  with hledger-lib versions before 1.32.
+- Require hledger-lib >= 1.32 and use its precision helper directly.
 
 ## 1.7.0 (2026-11-11)
 
