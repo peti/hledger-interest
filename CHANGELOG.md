@@ -2,6 +2,14 @@
 
 ## 2.0.0 (Unreleased)
 
+- Fix period lengths for the `--30-360`, `--30E-360`, and `--30E-360isda`
+  day-count conventions. Periods were counted from the day after the last
+  accounted day, both ends included, which miscounts whenever that day is
+  adjusted by the convention: a year of monthly payments on the 30th
+  accrued 365, 367, or 358 days instead of 360. Periods are now counted
+  from the last accounted day, so consecutive periods add up to the
+  convention's count over the whole span. `--act` is unaffected
+  ([#29](https://github.com/peti/hledger-interest/issues/29)).
 - Add `--until=YYYY-MM-DD` to calculate and post interest through an
   inclusive cutoff date, adapting Bas van Dijk's contribution in
   [#19](https://github.com/peti/hledger-interest/pull/19). `--today` is an

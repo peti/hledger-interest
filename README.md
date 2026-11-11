@@ -74,9 +74,12 @@ For every period, hledger-interest computes
 
     interest = balance * rate * days / days-in-year
 
-where `days` is the length of the period, both ends included, and
-`days-in-year` is the length of the calendar year in which the period
-ends. Both are counted with the selected convention:
+where `days` is the length of the period, counted from the last day
+already accounted for (for example, the loan date) to the posting date,
+and `days-in-year` is the length of the calendar year in which the period
+ends. Both are counted with the selected convention. For every convention,
+the day counts of consecutive periods add up to the count over the whole
+span:
 
 - `--act` counts actual calendar days. Calculation splits at calendar-year
   boundaries, using 365 or 366 days for each year. This is the

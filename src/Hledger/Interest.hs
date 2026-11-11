@@ -97,7 +97,10 @@ accrueInterest day = do
           error "hledger-interest: interest rate period ends before its start"
         modify (\st -> st { balancedUntil = newFrom })
         diff <- asks dayCountConvention
-        let days = (from `diff` to) + 1
+        -- Count from the last accounted day, not the first accrual day: the
+        -- 30/360 conventions adjust some dates, so only this form makes the
+        -- counts of consecutive periods add up to the count over the span.
+        let days = pred from `diff` to
             interest = mapMixedAmount (\a -> a { aquantity = (aquantity a * ratePerAnno) / fromInteger yearDays * fromInteger days }) bal
         modify (\st -> st { accruedDays = accruedDays st + days
                           , accruedInterest = accruedInterest st + interest
