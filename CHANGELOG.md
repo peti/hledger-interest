@@ -39,6 +39,8 @@
 - Preserve Unicode output in golden tests, require existing baselines,
   and cover all four day-count conventions with all three posting modes
   for scheduled rates, as well as regression cases for these fixes.
+- Add independent, hand-calculated assertions for interest amounts and
+  posting dates, including unrounded sub-cent compounding and deferred accrual.
 - Require hledger-lib >= 1.32 and use its precision helper directly.
 
 ## 1.7.0 (2026-11-11)

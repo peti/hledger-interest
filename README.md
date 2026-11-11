@@ -301,15 +301,25 @@ numbers for syntax errors.
 
 ## Regression tests
 
-Run the golden tests against the Cabal-built executable with:
+Run the independent calculation assertions and CLI golden tests with:
 
 ```sh
-cabal test regression --test-show-details=direct
+cabal test all --test-show-details=direct
 ```
 
-The cases in `tests/golden-tests.hs` run fixed journals from `tests/fixtures/`
-and compare stdout bytes exactly with `tests/golden/*.golden`, preserving
-Unicode. Successful commands must exit with empty stderr; error cases
+The `calculations` suite in `tests/calculation-tests.hs` checks the computation
+engine directly against hand-derived rational values, independently of
+rendered output. It covers day counts, repayment timing, leap-year
+denominators, compounding, deferred posting, rate changes, signs, and the
+rounding policy above. A comparison tolerance of `10^-30` accommodates finite
+decimal representations of recurring fractions while remaining far below
+the errors caused by rounding these examples to cents. These assertions
+have no golden files to update.
+
+The `regression` suite in `tests/golden-tests.hs` runs fixed journals from
+`tests/fixtures/` and compares stdout bytes exactly with
+`tests/golden/*.golden`, preserving Unicode. Successful commands must exit
+with empty stderr; error cases
 check the exit status, empty stdout, and the expected diagnostic. Coverage
 includes all four day-count conventions with constant, annual, and scheduled
 rates. Scheduled rates have golden coverage for all three posting modes
