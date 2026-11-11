@@ -128,7 +128,9 @@ The cases in `tests/golden-tests.hs` run fixed journals from `tests/fixtures/`
 and compare stdout bytes exactly with `tests/golden/*.golden`, preserving
 Unicode. Successful commands must exit with empty stderr; error cases
 check the exit status, empty stdout, and the expected diagnostic. Coverage includes all
-four day-count conventions with constant, annual, and scheduled rates;
+four day-count conventions with constant, annual, and scheduled rates.
+Scheduled rates have golden coverage for all three posting modes across
+all four conventions. Other cases cover
 historical rate schedules; leap days and month/year ends;
 rate changes, same-day payments, compounding versus separate interest
 accounts, deferred posting, zero/negative rates, and verbose output.

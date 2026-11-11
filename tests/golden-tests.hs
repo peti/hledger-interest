@@ -137,13 +137,15 @@ cases =
       ["--annual=0.05", flag, "--quiet", "--post-on-rate-changes"])
   | (convention, flag) <- dayCounts
   ] ++
+  [ ("schedule-transactions-only-" ++ convention, "boundaries", principal,
+      [schedule, flag, "--quiet", "--post-on-transactions"])
+  | (convention, flag) <- dayCounts
+  ] ++
   [ ("help", "boundaries", principal, ["--help"])
   , ("rate-change-at-year-end", "leap-crossing", principal,
       ["--schedule=[(2023-01-01,0.05),(2024-01-01,0.07)]", "--act", "--quiet", "--post-on-rate-changes"])
   , ("transaction-at-year-end", "year-end-transaction", principal,
       ["--annual=0.05", "--act", "--quiet", "--post-on-rate-changes"])
-  , ("schedule-transactions-only", "boundaries", principal,
-      [schedule, "--act", "--quiet", "--post-on-transactions"])
   , ("annual-separate-account", "boundaries", "Liabilities:Interest",
       ["--annual=0.05", "--act", "--quiet"])
   , ("annual-verbose", "boundaries", principal, ["--annual=0.05", "--act"])
