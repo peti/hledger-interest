@@ -1,6 +1,6 @@
 # Revision history for hledger-interest
 
-## Unreleased
+## 2.0.0 (Unreleased)
 
 - Add `--schedule-file=PATH` to read dated annualized rates from a text file.
   Rates accept fractions or percentages, with hledger date and comment
