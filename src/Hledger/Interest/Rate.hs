@@ -64,7 +64,7 @@ basiszins r date =
   case tableRate basiszinsPeriods date of
     Just (to, p) -> (to, r + p)
     Nothing      -> error ("hledger-interest: the BGB base rate after " ++ show lastEnd ++
-                           " is not known yet; please update basiszinsTable in Hledger/Interest/Rate.hs")
+                           " is not known yet; please update basiszinsTable in src/Hledger/Interest/Rate.hs")
   where
     lastEnd = case reverse basiszinsPeriods of
                 (_,to,_) : _ -> to
