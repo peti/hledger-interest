@@ -27,4 +27,7 @@ Default: post at transactions, rate-period ends, and year ends.
               --schedule=SCHEDULE         annualized rates and their effective dates;
                                           rates are fractions: 0.05 means 5% per year
                                           syntax: '[(Date1,Rate1),(Date2,Rate2),...]'
+              --schedule-file=PATH        read a schedule from a text file;
+                                          one date and rate per line, starting in column 1;
+                                          rates: 0.05 or 5%; hledger comments allowed
               --annual-schedule=SCHEDULE  alias for --schedule

@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Add `--schedule-file=PATH` to read dated annualized rates from a text file.
+  Rates accept fractions or percentages, with hledger date and comment
+  syntax. Entries must start in column 1; blank lines are ignored, and
+  syntax errors identify the file and position.
 - Process transactions in effective-date order, respecting secondary dates,
   and reject backwards accrual rather than counting overlapping periods.
 - Match the full interest account name literally throughout. Punctuation

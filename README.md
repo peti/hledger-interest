@@ -46,6 +46,9 @@ Display the available command-line options with `hledger-interest --help`:
                   --schedule=SCHEDULE         annualized rates and their effective dates;
                                               rates are fractions: 0.05 means 5% per year
                                               syntax: '[(Date1,Rate1),(Date2,Rate2),...]'
+                  --schedule-file=PATH        read a schedule from a text file;
+                                              one date and rate per line, starting in column 1;
+                                              rates: 0.05 or 5%; hledger comments allowed
                   --annual-schedule=SCHEDULE  alias for --schedule
 
 When run, hledger-interest reads the [ledger
@@ -142,7 +145,9 @@ data live only in `tests/HistoricalRates.hs`; tests pass them through
 The DB24 case uses `--post-on-rate-changes` and reproduces the original
 built-in mode's output exactly. Tests also cover rate aliases and posting
 flag precedence across all four day-count conventions.
-Tests deliberately avoid `--today` so results do not depend on the clock.
+Golden cases use explicit years and avoid `--today` so their expected
+output does not depend on the clock. File-based schedules are checked
+against the same goldens for all day-count conventions and posting modes.
 
 To add a case, add its argument list to `tests/golden-tests.hs` and, if needed,
 add a fixture journal. Missing baselines fail the suite, even with
@@ -252,3 +257,48 @@ transaction dates. Use `--post-on-rate-changes` or
 `--annual` is an alias for `--constant`; both specify a fixed annualized
 rate. The executable contains no bank-specific or statutory rate tables;
 supply the appropriate schedule yourself.
+
+### Schedule files
+
+Use `--schedule-file=PATH` to read the rates from a plain text file instead
+of specifying a list on the command line. For example, `rates.txt` could
+contain:
+
+```text
+# Annualized rates and their effective dates
+2010-09-26 5%
+2011/1/1  0.07  ; equivalent to 7%
+
+comment
+This block is ignored.
+end comment
+```
+
+Run it with the loan journal above:
+
+```sh
+hledger-interest -f loan.ledger --act --schedule-file=rates.txt \
+  --source=Expenses:Interest --target=Liabilities:Loan Liabilities:Loan
+```
+
+Each entry consists of a hledger date and an annualized rate, separated by
+spaces or tabs. A fraction such as `0.15` and a percentage such as `15%`
+are equivalent. Signed rates are supported, and whitespace before `%` or
+at the end of a line is ignored. Empty and whitespace-only lines are ignored.
+An entry must begin in column 1: `   2026-01-01 0.05` is a syntax error.
+
+Dates accept `YYYY-MM-DD`, `YYYY/MM/DD`, or `YYYY.MM.DD`, with optional
+leading zeros. As in hledger journals, dates without a year use the
+current local year. Specify the year explicitly for reproducible schedules.
+
+Comments follow hledger syntax: lines beginning with `#`, `;`, or `*`
+(optionally indented) are ignored. A semicolon starts an inline comment;
+`#` and `*` do not. A `comment` line starts a block that ends at an
+`end comment` line or the end of the file. Both block delimiters start
+in column 1. Windows line endings and a missing final newline are accepted.
+
+File schedules use the same sorting, posting, and rate rules as `--schedule`.
+An empty or comments-only file specifies zero interest. When rate options
+are repeated or combined, the last one wins; overridden files are not read.
+Read and syntax errors identify the schedule file, with line and column
+numbers for syntax errors.

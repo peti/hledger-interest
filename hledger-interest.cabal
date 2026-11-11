@@ -12,6 +12,7 @@ Cabal-version:          2.0
 Extra-source-files:     README.md
                         CHANGELOG.md
                         tests/fixtures/*.journal
+                        tests/fixtures/*.rates
                         tests/golden/*.golden
 Stability:              stable
 tested-with:            GHC == 9.6.7, GHC == 9.8.4, GHC == 9.10.3,
@@ -24,7 +25,7 @@ Description:
  configured to use various schemes for day-counting, such as act\/act,
  30\/360, 30E\/360, and 30E\/360isda. It supports constant rates,
  annual interest with a fixed rate, and schedules of annual rates
- supplied on the command line.
+ supplied on the command line or read from a text file.
  .
  As an example, consider the loan in the regression fixture
  @tests/fixtures/boundaries.journal@:
@@ -131,6 +132,9 @@ Description:
  >               --schedule=SCHEDULE         annualized rates and their effective dates;
  >                                           rates are fractions: 0.05 means 5% per year
  >                                           syntax: '[(Date1,Rate1),(Date2,Rate2),...]'
+ >               --schedule-file=PATH        read a schedule from a text file;
+ >                                           one date and rate per line, starting in column 1;
+ >                                           rates: 0.05 or 5%; hledger comments allowed
  >               --annual-schedule=SCHEDULE  alias for --schedule
 
 Source-Repository head
@@ -141,10 +145,11 @@ Executable hledger-interest
   default-language:     Haskell2010
   hs-source-dirs:       src
   Main-is:              hledger-interest.hs
-  Build-depends:        base >= 3 && < 5, hledger-lib >= 1.32 && < 1.53, time, mtl, Decimal, text
+  Build-depends:        base >= 3 && < 5, hledger-lib >= 1.32 && < 1.53, time, mtl, Decimal, text, megaparsec >= 7 && < 10
   other-modules:        Hledger.Interest
                         Hledger.Interest.DayCountConvention
                         Hledger.Interest.Rate
+                        Hledger.Interest.ScheduleFile
                         Paths_hledger_interest
   autogen-modules:      Paths_hledger_interest
 

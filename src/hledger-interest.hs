@@ -1,6 +1,7 @@
 module Main ( main ) where
 
 import Hledger.Interest
+import Hledger.Interest.ScheduleFile (readScheduleFile)
 import Hledger.Read
 
 import Control.Exception ( ErrorCall(..), finally, handle )
@@ -17,6 +18,8 @@ import Text.Read (readEither)
 
 import Paths_hledger_interest ( version )
 
+data RateInput = RateValue Rate | RateFile FilePath
+
 data Options = Options
   { optVerbose          :: Bool
   , optShowVersion      :: Bool
@@ -25,7 +28,7 @@ data Options = Options
   , optSourceAcc        :: String
   , optTargetAcc        :: String
   , optDCC              :: Maybe DayCountConvention
-  , optRate             :: Either String Rate
+  , optRate             :: Either String RateInput
   , optBalanceToday     :: Bool
   , optPostOnTxns       :: Bool
   , optPostOnRateChanges :: Bool
@@ -68,6 +71,7 @@ options =
  , Option []    ["constant"]          (ReqArg (setRate "--constant" constant) "RATE")                    "fixed annual interest rate"
  , Option []    ["annual"]            (ReqArg (setRate "--annual" perAnno) "RATE")                        "alias for --constant"
  , Option []    ["schedule"]          (ReqArg (setRate "--schedule" scheduled) "SCHEDULE")                "annualized rates and their effective dates;\nrates are fractions: 0.05 means 5% per year\nsyntax: '[(Date1,Rate1),(Date2,Rate2),...]'"
+ , Option []    ["schedule-file"]     (ReqArg (\path o -> o { optRate = Right (RateFile path) }) "PATH")   "read a schedule from a text file;\none date and rate per line, starting in column 1;\nrates: 0.05 or 5%; hledger comments allowed"
  , Option []    ["annual-schedule"]   (ReqArg (setRate "--annual-schedule" scheduled) "SCHEDULE")         "alias for --schedule"
  ]
 
@@ -76,7 +80,7 @@ setRate flag makeRate value opts = opts { optRate = parsed }
   where
     parsed = case readEither value of
       Left _ -> Left ("invalid value for " ++ flag ++ ": " ++ value ++ "\n")
-      Right r -> Right (makeRate r)
+      Right r -> Right (RateValue (makeRate r))
 
 usageMessage :: String
 usageMessage = usageInfo header options
@@ -104,11 +108,15 @@ run = do
   when (null (optSourceAcc opts)) (commandLineError "required --source option is missing\n")
   when (null (optTargetAcc opts)) (commandLineError "required --target option is missing\n")
   dcc <- maybe (commandLineError "no day counting convention specified\n") pure (optDCC opts)
-  rate <- either commandLineError pure (optRate opts)
+  rateInput <- either commandLineError pure (optRate opts)
   interestAcc <- case args of
                    []    -> commandLineError "required argument ACCOUNT is missing\n"
                    [acc] -> return $ T.pack acc
                    _     -> commandLineError "only one interest ACCOUNT may be specified\n"
+  rate <- case rateInput of
+    RateValue r -> pure r
+    RateFile path -> readScheduleFile path >>=
+      either (\msg -> hPutStrLn stderr msg >> exitFailure) (pure . scheduled)
   let ledgerInputOptions = definputopts { balancingopts_ = (balancingopts_ definputopts) { ignore_assertions_ = optIgnoreAssertions opts } }
   inputFiles <- case optInput opts of
                   [] -> pure <$> defaultJournalPath

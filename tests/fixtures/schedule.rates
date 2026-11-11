@@ -1,0 +1,16 @@
+# Historical rates — unsorted rates exercise sorting as well as parsing.
+  ; Indented comment lines are allowed.
+	# A tab-indented comment is also allowed.
+* An org-style comment line
+
+comment
+This block is ignored, even if its contents look like invalid entries.
+   2023-01-01 not-a-rate
+end comment
+
+2024.2.29	3 %  ; Percentage with whitespace before the percent sign
+2023/7/1    0.07
+2023-02-15  5%; Inline semicolon comments need no separating space.
+    ; A following, indented comment
+comment
+The final block comment intentionally runs through EOF.

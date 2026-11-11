@@ -6,6 +6,8 @@ import Control.Monad (forM_, (>=>))
 
 import qualified Data.ByteString.Lazy as B
 import qualified Data.ByteString.Lazy.Char8 as BC
+import Data.Time.Calendar (toGregorian)
+import Data.Time.LocalTime (getZonedTime, localDay, zonedTimeToLocalTime)
 import System.Exit (ExitCode(..))
 import System.Process.Typed (proc, readProcess, setStdin, closed)
 import Test.Tasty (defaultMain, localOption, testGroup, TestTree)
@@ -36,7 +38,56 @@ main = defaultMain $ testGroup "CLI regression"
        [ goldenCase (model ++ "-after-last-rate") "after-coverage"
            "Liabilities:Loan" "Liabilities:Interest" (args ++ ["--quiet"])
        | (model, args) <- historicalModels
+       ] ++
+       [ goldenOutput ("schedule-file-" ++ mode ++ "-" ++ convention)
+           (baseline ++ convention)
+           (fileArguments "schedule" (flag : postingFlags))
+       | (mode, postingFlags, baseline) <-
+           [("default", [], "schedule-"),
+            ("rate-changes", ["--post-on-rate-changes"], "schedule-no-year-end-"),
+            ("transactions", ["--post-on-transactions"], "schedule-transactions-only-")]
+       , (convention, flag) <- dayCounts
+       ] ++
+       [ goldenOutput ("schedule-file-" ++ fixture) baseline (fileArguments fixture ["--act"])
+       | (fixture, baseline) <-
+           [("schedule-crlf", "schedule-act"), ("schedule-no-newline", "schedule-act"),
+            ("empty", "zero-rate"), ("comments-only", "zero-rate"),
+            ("negative", "negative-rate"), ("positive", "annual-act")]
        ])
+  , testGroup "schedule file errors"
+      ([ failurePrefix fixture (fileArguments ("schedule-" ++ fixture) ["--act"])
+           ("tests/fixtures/schedule-" ++ fixture ++ ".rates:" ++ line ++ ":" ++ column)
+       | (fixture, line, column) <-
+           [("indented-spaces", "1", "1:"), ("indented-tab", "1", "1:"),
+            ("invalid-date", "1", ""), ("mixed-date-separators", "1", ""),
+            ("invalid-rate", "1", ""), ("missing-rate", "1", ""),
+            ("extra-field", "1", ""), ("inline-hash", "1", ""),
+            ("inline-star", "1", ""), ("double-percent", "1", ""),
+            ("bad-second-line", "2", "1:")]
+       ] ++
+       [ failurePrefix "missing-file" (fileArguments "missing" ["--act"])
+           "tests/fixtures/missing.rates: "
+       ])
+  , testGroup "schedule file options"
+      [ testCase "last-rate-option-wins" $ do
+          let invoke opts = successfulOutput $ arguments "boundaries" "Liabilities:Loan"
+                "Liabilities:Loan" (["--act", "--quiet"] ++ opts)
+              file name = "--schedule-file=tests/fixtures/" ++ name ++ ".rates"
+          fixed <- invoke ["--annual=0.05"]
+          scheduled <- invoke [schedule]
+          zero <- invoke ["--schedule=[]"]
+          invoke [file "missing", "--annual=0.05"] >>= (@?= fixed)
+          invoke ["--annual=0.9", file "schedule"] >>= (@?= scheduled)
+          invoke [file "schedule", "--schedule=[]"] >>= (@?= zero)
+          invoke ["--schedule=bogus", file "schedule"] >>= (@?= scheduled)
+          invoke [file "schedule", file "empty"] >>= (@?= zero)
+      , testCase "yearless-dates-use-current-year" $ do
+          (year, _, _) <- toGregorian . localDay . zonedTimeToLocalTime <$> getZonedTime
+          let inline = "--schedule=[(" ++ show year ++ "-02-15,0.05),(" ++ show year ++ "-07-01,0.07)]"
+          expected <- successfulOutput (arguments "boundaries" "Liabilities:Loan"
+            "Liabilities:Loan" [inline, "--act", "--quiet"])
+          successfulOutput (fileArguments "yearless" ["--act"]) >>= (@?= expected)
+      ]
   , testGroup "errors"
       ([ failureCase ("removed-" ++ model) ["--" ++ model]
            ("unrecognized option `--" ++ model ++ "'")
@@ -104,8 +155,15 @@ arguments fixture account target args =
 
 goldenCase :: String -> String -> String -> String -> [String] -> TestTree
 goldenCase name fixture account target args =
-  goldenVsString name ("tests/golden/" ++ name ++ ".golden") $
-    successfulOutput (arguments fixture account target args)
+  goldenOutput name name (arguments fixture account target args)
+
+goldenOutput :: String -> String -> [String] -> TestTree
+goldenOutput name baseline args =
+  goldenVsString name ("tests/golden/" ++ baseline ++ ".golden") (successfulOutput args)
+
+fileArguments :: String -> [String] -> [String]
+fileArguments fixture flags = arguments "boundaries" "Liabilities:Loan" "Liabilities:Loan"
+  (["--schedule-file=tests/fixtures/" ++ fixture ++ ".rates", "--quiet"] ++ flags)
 
 successfulOutput :: [String] -> IO B.ByteString
 successfulOutput args = do
@@ -115,12 +173,15 @@ successfulOutput args = do
   pure out
 
 failureCase :: String -> [String] -> String -> TestTree
-failureCase name args message = testCase name $ do
+failureCase name args message = failurePrefix name args (message ++ "\n")
+
+failurePrefix :: String -> [String] -> String -> TestTree
+failurePrefix name args message = testCase name $ do
   (status, out, err) <- runCLI args
   status @?= ExitFailure 1
   out @?= B.empty
   assertBool ("Expected error: " ++ message ++ "\nActual stderr: " ++ BC.unpack err)
-    (BC.pack (message ++ "\n") `B.isPrefixOf` err)
+    (BC.pack message `B.isPrefixOf` err)
 
 cases :: [(String, String, String, [String])]
 cases =
