@@ -1,55 +1,79 @@
 # Revision history for hledger-interest
 
-## 2.0.0 (Unreleased)
+## 2.0.0 (2026-11-11)
 
-- Fix period lengths for the `--30-360`, `--30E-360`, and `--30E-360isda`
-  day-count conventions. Periods were counted from the day after the last
-  accounted day, both ends included, which miscounts whenever that day is
-  adjusted by the convention: a year of monthly payments on the 30th
-  accrued 365, 367, or 358 days instead of 360. Periods are now counted
-  from the last accounted day, so consecutive periods add up to the
-  convention's count over the whole span. `--act` is unaffected
+### Incompatible changes
+
+- The built-in `--bgb288`, `--ing-diba`, and `--db24` modes have been
+  removed. hledger-interest no longer contains bank-specific or statutory
+  rate tables; supply the rates with `--schedule` or `--schedule-file`
+  together with an explicit day-count flag. Unlike the former modes,
+  schedules earn no interest before their first entry and keep the last
+  rate indefinitely. The historical tables survive as regression tests,
+  which also show how to reproduce the former modes' output.
+- The interest account is matched literally by its full name. Punctuation
+  is no longer interpreted as a regular expression, subaccounts are no
+  longer included, and an account without matching transactions is an
+  error.
+- Rate selection is independent of posting frequency. Every rate option,
+  including `--constant`, now posts interest at year ends by default;
+  `--constant` and `--annual` are equivalent.
+- Interest is no longer computed backwards: balance changes are processed
+  in effective-date order, and overlapping periods are rejected instead of
+  being counted twice.
+
+### Changes that affect computed interest
+
+- `--30-360`, `--30E-360`, and `--30E-360isda` miscounted periods that
+  start on a day adjusted by the convention: a year of monthly payments on
+  the 30th accrued 365, 367, or 358 days instead of 360. Periods are now
+  counted from the last accounted day, so consecutive periods add up to
+  the convention's count over the whole span. `--act` is unaffected
   ([#29](https://github.com/peti/hledger-interest/issues/29)).
-- Add `--until=YYYY-MM-DD` to calculate and post interest through an
-  inclusive cutoff date, adapting Bas van Dijk's contribution in
-  [#19](https://github.com/peti/hledger-interest/pull/19). `--today` is an
-  alias for `--until=today`; the last cutoff option wins. Transactions
-  after the cutoff are excluded by effective date from calculation and
-  output, including when `--today` is used.
-- Add `--schedule-file=PATH` to read dated annualized rates from a text file.
-  Rates accept fractions or percentages, with hledger date and comment
-  syntax. Entries must start in column 1; blank lines are ignored, and
-  syntax errors identify the file and position.
-- Process transactions in effective-date order, respecting secondary dates,
-  and reject backwards accrual rather than counting overlapping periods.
-- Match the full interest account name literally throughout. Punctuation
-  is no longer interpreted as a regular expression, subaccounts are excluded,
-  and an account with no matching transactions produces an error.
-- Remove the built-in BGB288, ING-DiBa, and DB24 modes and their flags.
-  Their historical data now live only in the test suite, which supplies
-  them through `--schedule` and explicit day-count flags. Unlike the former
-  modes, schedules earn zero interest before the first entry and keep the
-  last rate indefinitely. The DB24 example uses `--post-on-rate-changes`
-  to reproduce its original output.
-- Add `--schedule`, retaining `--annual-schedule` as an alias. Rate selection
-  is independent of posting frequency: all rates now post automatically at
-  year ends by default, including `--constant` (now equivalent to `--annual`).
-- Add `--post-on-rate-changes` to post only at transactions and rate-period
-  ends. `--post-on-transactions` suppresses both automatic posting boundaries
-  and takes precedence when combined with the new flag.
-- Split actual-day calculations at calendar-year boundaries for correct
-  365/366-day denominators in every posting mode, without compounding at
-  internal calculation boundaries. Fixed 360-day conventions can calculate
-  across years without a split when year-end posting is suppressed.
-- Skip rate lookup while the balance is zero, including before the first loan.
-- Report invalid rate arguments and missing account arguments before
-  reading the journal, and display computation errors without exception noise.
-- Preserve Unicode output in golden tests, require existing baselines,
-  and cover all four day-count conventions with all three posting modes
-  for scheduled rates, as well as regression cases for these fixes.
-- Add independent, hand-calculated assertions for interest amounts and
-  posting dates, including unrounded sub-cent compounding and deferred accrual.
-- Require hledger-lib >= 1.32 and use its precision helper directly.
+- Posting-level dates are honored. A posting's own date, or its secondary
+  date, determines when it changes the balance, taking precedence over the
+  transaction's dates
+  ([#31](https://github.com/peti/hledger-interest/issues/31)).
+- Secondary transaction dates are respected when ordering transactions.
+- Transaction costs (`@` and `@@`) no longer leak into the principal,
+  the descriptions, or the generated postings.
+- `--act` splits calculations at calendar-year boundaries in every posting
+  mode, so each year uses its correct 365/366-day denominator. These
+  internal splits do not compound interest unless it is actually posted.
+- No rate is looked up while the balance is zero, e.g. before the first
+  loan.
+
+### New features
+
+- `--until=YYYY-MM-DD` computes and posts interest through an inclusive
+  cutoff date and ignores later transactions, adapting Bas van Dijk's
+  contribution in [#19](https://github.com/peti/hledger-interest/pull/19).
+  `--today` is now an alias for `--until=today`; the last cutoff option
+  wins.
+- `--schedule-file=PATH` reads dated annualized rates from a text file.
+  Rates may be given as fractions or percentages, and the file accepts
+  hledger date and comment syntax. Syntax errors report the file, line,
+  and column.
+- `--schedule` specifies annualized rates and their effective dates;
+  `--annual-schedule` remains as an alias.
+- `--post-on-rate-changes` posts interest at transactions and rate-period
+  ends, but not at year ends. `--post-on-transactions` takes precedence
+  when both flags are given.
+
+### Other changes
+
+- Invalid rate arguments and a missing account argument are reported
+  before the journal is read, and computation errors are shown without
+  exception noise.
+- The `--verbose` and `--quiet` help texts describe the output accurately:
+  verbose mode prints the matching input transactions, not the entire
+  journal.
+- The README documents the rounding and precision policy: interest accrues
+  unrounded, and only its display is rounded.
+- A new `calculations` test suite checks interest amounts and posting
+  dates against hand-derived values, and the golden-file `regression`
+  suite covers all day-count conventions with all posting modes.
+- Require hledger-lib >= 1.32.
 
 ## 1.7.0 (2026-11-11)
 

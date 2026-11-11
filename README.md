@@ -55,18 +55,24 @@ Display the available command-line options with `hledger-interest --help`:
 
 When run, hledger-interest reads the [ledger
 file](http://hledger.org/MANUAL.html#file-format) designated by the
-`--file` flag and selects transactions containing postings to the account
-specified on the command line. The selected account name must be specified
-in full and is matched literally, including punctuation; selecting a parent
-account does not include its subaccounts. Other postings in a matching
-transaction are preserved when the input journal is echoed.
-An account with no matching transactions produces an error. Transactions
-are processed in effective-date order, using the secondary date when one
-is present and the primary date otherwise. Interest accrued through each
-transaction date is posted before that transaction changes the balance.
+`--file` flag and selects the postings to the account specified on the
+command line. The account name must be given in full and is matched
+literally, including punctuation; selecting a parent account does not
+include its subaccounts. An account with no matching postings produces an
+error.
+
+Postings change the balance in effective-date order. The effective date of
+a posting is the first one present of: the posting's secondary date, the
+transaction's secondary date, the posting's own date, and the transaction's
+date. Interest accrued through that date is posted before the posting
+changes the balance. Transaction costs (`@` and `@@`) are ignored; interest
+accrues on the posted amount only.
+
 Generated interest is booked to the account designated by `--target`, with
-the opposite amount booked to the account designated by `--source`.
-The amounts' signs depend on the balance and rate.
+the opposite amount booked to the account designated by `--source`. The
+amounts' signs depend on the balance and rate. With `--verbose`, the
+default, the output also contains every input transaction that touches the
+selected account, unchanged and including its other postings.
 
 ## Day counting conventions
 
@@ -157,12 +163,12 @@ Both options use one cutoff setting: if they are repeated or combined,
 the last one wins. Without either option, computation stops at the last
 matching transaction.
 
-Transactions with effective dates after the cutoff are excluded from
-both computation and echoed output. A secondary date takes precedence
-over the primary date, so a transaction with a later primary date can
-still be included if its secondary date is on or before the cutoff.
-Transactions on the cutoff date are processed normally. A cutoff before
-the first matching transaction produces no output.
+Postings with effective dates after the cutoff are ignored, and
+transactions dated after the cutoff are not echoed. A secondary date takes
+precedence over the primary date, so a transaction with a later primary
+date is still included if its secondary date is on or before the cutoff.
+Postings on the cutoff date are processed normally. A cutoff before the
+first matching posting produces no output.
 
 ## Examples
 
@@ -304,59 +310,48 @@ numbers for syntax errors.
 
 ## Regression tests
 
-Run the independent calculation assertions and CLI golden tests with:
+Run all tests with:
 
 ```sh
 cabal test all --test-show-details=direct
 ```
 
-The `calculations` suite in `tests/calculation-tests.hs` checks the computation
-engine directly against hand-derived rational values, independently of
-rendered output. It covers day counts, repayment timing, leap-year
-denominators, compounding, deferred posting, rate changes, signs, and the
-rounding policy above. A comparison tolerance of `10^-30` accommodates finite
-decimal representations of recurring fractions while remaining far below
-the errors caused by rounding these examples to cents. These assertions
-have no golden files to update.
+The `calculations` suite (`tests/calculation-tests.hs`) checks the
+computation engine directly against hand-derived rational values,
+independently of rendered output. It covers day counts, repayment timing,
+leap-year denominators, compounding, deferred posting, rate changes,
+signs, balance transitions, and the rounding policy described above.
+Comparisons use a tolerance of `10^-30`, which accommodates finite decimal
+representations of recurring fractions while remaining far below any
+rounding to cents.
 
-The `regression` suite in `tests/golden-tests.hs` runs fixed journals from
-`tests/fixtures/` and compares stdout bytes exactly with
-`tests/golden/*.golden`, preserving Unicode. Successful commands must exit
-with empty stderr; error cases
-check the exit status, empty stdout, and the expected diagnostic. Coverage
-includes all four day-count conventions with constant, annual, and scheduled
-rates. Scheduled rates have golden coverage for all three posting modes
-across all four conventions. Other cases cover historical rate schedules,
-leap days, month and year ends, rate changes, same-day payments, compounding
-versus separate interest accounts, deferred posting, zero and negative
-rates, and verbose output. Additional cases cover secondary dates,
-literal account names, Unicode,
-the start of each historical schedule, dates outside the former coverage
-limits, and invalid arguments. Historical BGB288 rates live in
-`tests/fixtures/bgb288.rates` and are read with `--schedule-file`. DB24 and
-ING-DiBa schedules are defined in `tests/HistoricalRates.hs` and passed
-through `--schedule`. All use explicit day-count flags and are fixed
-regression snapshots.
-The DB24 case uses `--post-on-rate-changes` and reproduces the original
-built-in mode's output exactly. Tests also cover rate aliases and posting
-flag precedence across all four day-count conventions.
-Golden cases use explicit years and avoid `--today` so their expected
-output does not depend on the clock. File-based schedules are checked
-against the same goldens for all day-count conventions and posting modes.
-Cutoff goldens exercise `--until` across the same matrix, with additional
-checks for inclusive dates, secondary dates, aliases, and option precedence.
-Balance cases cover multiple currencies, full repayment followed by a new
-loan, overpayments, and multiple postings to the selected account under all
-three posting policies. Input cases check stdin, multiple journals in either
-order, and valid, invalid, and explicitly ignored balance assertions.
-Independent calculation tests also verify those balance transitions against
-hand-derived amounts, including repayment of compounded interest.
+The `regression` suite (`tests/golden-tests.hs`) runs the executable on
+the journals in `tests/fixtures/` and compares its stdout byte for byte
+with `tests/golden/*.golden`. Successful commands must produce no stderr
+output; error cases check the exit status, empty stdout, and the
+diagnostic. The cases cover:
 
-To add a case, add its argument list to `tests/golden-tests.hs` and, if needed,
-add a fixture journal. Missing baselines fail the suite, even with
-`--accept`. For a new golden case, first create an empty baseline explicitly
-(for example, `touch tests/golden/new-case.golden`). Then record or
-intentionally update expected output:
+- all four day-count conventions with constant, annual, and scheduled
+  rates, in all three posting modes, given on the command line and in
+  schedule files, with and without `--until`;
+- leap days, month and year ends, rate changes, same-day payments,
+  compounding versus separate interest accounts, zero and negative rates;
+- secondary and posting-level dates, transaction costs, literal account
+  names, Unicode, and verbose output;
+- multiple currencies, full repayment followed by a new loan,
+  overpayments, and several postings to the selected account;
+- stdin, multiple journals, balance assertions, and invalid arguments;
+- historical rate schedules: BGB288 rates in `tests/fixtures/bgb288.rates`,
+  DB24 and ING-DiBa rates in `tests/HistoricalRates.hs`. The DB24 case
+  reproduces the output of the former built-in mode exactly.
+
+Golden cases use explicit years and avoid `--today`, so their output does
+not depend on the clock.
+
+To add a case, add its argument list to `tests/golden-tests.hs` and, if
+needed, a fixture journal. Missing baselines fail the suite, even with
+`--accept`, so create an empty one first (for example,
+`touch tests/golden/new-case.golden`). Then record the expected output:
 
 ```sh
 cabal test regression --test-options=--accept
@@ -365,6 +360,5 @@ git diff -- tests/golden
 
 Review new and changed golden files before committing them. They capture
 current behavior, including formatting supplied by `hledger-lib`, rather
-than independently proving the calculations correct. Dependency upgrades
-can therefore require reviewed baseline updates. The fixtures and golden
-files are included in source distributions, and CI runs the suite.
+than proving the calculations correct, so dependency upgrades may require
+reviewed baseline updates.
