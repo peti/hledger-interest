@@ -119,55 +119,6 @@ description omits the rate, for example:
         Liabilities:Loan       -53.65 USD
         Expenses:Interest       53.65 USD
 
-## Regression tests
-
-Run the golden tests against the Cabal-built executable with:
-
-```sh
-cabal test regression --test-show-details=direct
-```
-
-The cases in `tests/golden-tests.hs` run fixed journals from `tests/fixtures/`
-and compare stdout bytes exactly with `tests/golden/*.golden`, preserving
-Unicode. Successful commands must exit with empty stderr; error cases
-check the exit status, empty stdout, and the expected diagnostic. Coverage
-includes all four day-count conventions with constant, annual, and scheduled
-rates. Scheduled rates have golden coverage for all three posting modes
-across all four conventions. Other cases cover historical rate schedules,
-leap days, month and year ends, rate changes, same-day payments, compounding
-versus separate interest accounts, deferred posting, zero and negative
-rates, and verbose output. Additional cases cover secondary dates,
-literal account names, Unicode,
-the start of each historical schedule, dates outside the former coverage
-limits, and invalid arguments. Historical BGB288 rates live in
-`tests/fixtures/bgb288.rates` and are read with `--schedule-file`. DB24 and
-ING-DiBa schedules are defined in `tests/HistoricalRates.hs` and passed
-through `--schedule`. All use explicit day-count flags and are fixed
-regression snapshots.
-The DB24 case uses `--post-on-rate-changes` and reproduces the original
-built-in mode's output exactly. Tests also cover rate aliases and posting
-flag precedence across all four day-count conventions.
-Golden cases use explicit years and avoid `--today` so their expected
-output does not depend on the clock. File-based schedules are checked
-against the same goldens for all day-count conventions and posting modes.
-
-To add a case, add its argument list to `tests/golden-tests.hs` and, if needed,
-add a fixture journal. Missing baselines fail the suite, even with
-`--accept`. For a new golden case, first create an empty baseline explicitly
-(for example, `touch tests/golden/new-case.golden`). Then record or
-intentionally update expected output:
-
-```sh
-cabal test regression --test-options=--accept
-git diff -- tests/golden
-```
-
-Review new and changed golden files before committing them. They capture
-current behavior, including formatting supplied by `hledger-lib`, rather
-than independently proving the calculations correct. Dependency upgrades
-can therefore require reviewed baseline updates. The fixtures and golden
-files are included in source distributions, and CI runs the suite.
-
 ## Examples
 
 Suppose you borrowed EUR 1000 from your bank at 5% per year and made three
@@ -304,3 +255,52 @@ An empty or comments-only file specifies zero interest. When rate options
 are repeated or combined, the last one wins; overridden files are not read.
 Read and syntax errors identify the schedule file, with line and column
 numbers for syntax errors.
+
+## Regression tests
+
+Run the golden tests against the Cabal-built executable with:
+
+```sh
+cabal test regression --test-show-details=direct
+```
+
+The cases in `tests/golden-tests.hs` run fixed journals from `tests/fixtures/`
+and compare stdout bytes exactly with `tests/golden/*.golden`, preserving
+Unicode. Successful commands must exit with empty stderr; error cases
+check the exit status, empty stdout, and the expected diagnostic. Coverage
+includes all four day-count conventions with constant, annual, and scheduled
+rates. Scheduled rates have golden coverage for all three posting modes
+across all four conventions. Other cases cover historical rate schedules,
+leap days, month and year ends, rate changes, same-day payments, compounding
+versus separate interest accounts, deferred posting, zero and negative
+rates, and verbose output. Additional cases cover secondary dates,
+literal account names, Unicode,
+the start of each historical schedule, dates outside the former coverage
+limits, and invalid arguments. Historical BGB288 rates live in
+`tests/fixtures/bgb288.rates` and are read with `--schedule-file`. DB24 and
+ING-DiBa schedules are defined in `tests/HistoricalRates.hs` and passed
+through `--schedule`. All use explicit day-count flags and are fixed
+regression snapshots.
+The DB24 case uses `--post-on-rate-changes` and reproduces the original
+built-in mode's output exactly. Tests also cover rate aliases and posting
+flag precedence across all four day-count conventions.
+Golden cases use explicit years and avoid `--today` so their expected
+output does not depend on the clock. File-based schedules are checked
+against the same goldens for all day-count conventions and posting modes.
+
+To add a case, add its argument list to `tests/golden-tests.hs` and, if needed,
+add a fixture journal. Missing baselines fail the suite, even with
+`--accept`. For a new golden case, first create an empty baseline explicitly
+(for example, `touch tests/golden/new-case.golden`). Then record or
+intentionally update expected output:
+
+```sh
+cabal test regression --test-options=--accept
+git diff -- tests/golden
+```
+
+Review new and changed golden files before committing them. They capture
+current behavior, including formatting supplied by `hledger-lib`, rather
+than independently proving the calculations correct. Dependency upgrades
+can therefore require reviewed baseline updates. The fixtures and golden
+files are included in source distributions, and CI runs the suite.
