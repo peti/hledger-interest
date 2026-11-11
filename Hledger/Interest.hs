@@ -70,7 +70,7 @@ computeInterest day = do
     t <- mkTrans to ((from `diff` to) + 1) ratePerAnno
     tell [t]
     processTransaction t
-  when (newFrom < day) (computeInterest day)
+  when (newFrom <= day) (computeInterest day)
 
 daysInYear :: Day -> Computer Integer
 daysInYear now = asks dayCountConvention >>= \diff -> return (day1 `diff` day2)
