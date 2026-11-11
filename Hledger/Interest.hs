@@ -85,7 +85,7 @@ mkTrans day days ratePerAnno = do
   perDayScalar <- daysInYear day
   let t = nulltransaction
           { tdate          = day
-          , tdescription   = T.pack $ showPercent ratePerAnno ++ " interest for " ++ showMixedAmount bal ++ " over " ++ show days ++ " days"
+          , tdescription   = T.pack $ showPercent ratePerAnno ++ " interest for " ++ showMixedAmountOneLine bal ++ " over " ++ show days ++ " days"
           , tpostings      = [pTarget,pSource]
           }
       -- balance might have been an exact amount, in which case its precision might
