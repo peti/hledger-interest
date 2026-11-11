@@ -9,11 +9,11 @@ Homepage:               https://github.com/peti/hledger-interest
 Category:               Finance
 Build-type:             Simple
 Cabal-version:          2.0
-Extra-source-files:     README.md
-Extra-doc-files:        CHANGELOG.md
-                        tests/fixtures/*.journal
+Extra-source-files:     tests/fixtures/*.journal
                         tests/fixtures/*.rates
                         tests/golden/*.golden
+Extra-doc-files:        README.md
+                        CHANGELOG.md
 Stability:              stable
 tested-with:            GHC == 9.6.7, GHC == 9.8.4, GHC == 9.10.3,
                         GHC == 9.12.2, GHC == 9.14.1
