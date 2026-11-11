@@ -13,7 +13,7 @@ import Data.Time.Calendar
 type DayCountConvention = Day -> Day -> Integer
 
 diffAct :: DayCountConvention
-diffAct date1 date2 = assert (date1 <= date2) $ fromInteger (date2 `diffDays` date1)
+diffAct date1 date2 = assert (date1 <= date2) $ date2 `diffDays` date1
 
 mkDiff30_360 :: (Integer,Int,Int) -> (Integer,Int,Int) -> Integer
 mkDiff30_360 (y1,m1,d1) (y2,m2,d2) = 360*(y2-y1) + 30*toInteger (m2-m1) + toInteger (d2-d1)

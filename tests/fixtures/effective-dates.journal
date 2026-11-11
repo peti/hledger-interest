@@ -1,0 +1,15 @@
+2023-01-01 Loan
+    Assets:Bank  EUR 10000.00
+    Liabilities:Loan
+
+2023-02-01=2023-03-01 Later value date
+    Assets:Bank  EUR -100.00
+    Liabilities:Loan
+
+2023-02-15 Earlier value date
+    Assets:Bank  EUR -100.00
+    Liabilities:Loan
+
+2023-04-01 Payment
+    Assets:Bank  EUR -100.00
+    Liabilities:Loan

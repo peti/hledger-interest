@@ -1,0 +1,7 @@
+2023-01-01 Prêt en euros
+    Assets:Bank  €10000.00
+    Liabilities:Prêt
+
+2023-02-01 Remboursement
+    Assets:Bank  €-100.00
+    Liabilities:Prêt

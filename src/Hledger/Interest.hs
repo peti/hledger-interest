@@ -1,3 +1,5 @@
+{-# LANGUAGE CPP #-}
+
 module Hledger.Interest
   ( Computer, runComputer
   , Config(..)
@@ -16,7 +18,6 @@ import Hledger.Interest.Rate
 import Control.Monad
 import Control.Monad.RWS
 import Data.Decimal
-import Data.Maybe
 import qualified Data.Text as T
 import Data.Time.Calendar
 import Data.Time.Calendar.OrdinalDate
@@ -55,13 +56,11 @@ nullInterestState = InterestState
 
 processTransaction :: Transaction -> Computer ()
 processTransaction ts = do
-  let day = fromMaybe (tdate ts) (tdate2 ts)
-  computeInterest day
+  computeInterest (transactionDate2 ts)
   interestAcc <- asks interestAccount
   let posts = [ p | p <- tpostings ts, interestAcc == paccount p ]
-  forM_ posts $ \p -> do
-    bal <- gets balance
-    modify (\st -> st { balance = bal + pamount p })
+  forM_ posts $ \p ->
+    modify (\st -> st { balance = balance st + pamount p })
 
 -- | Compute and post all interest up to and including the given day.
 computeInterest :: Day -> Computer ()
@@ -71,22 +70,31 @@ accrueInterest :: Day -> Computer ()
 accrueInterest day = do
   from <- gets balancedUntil
   bal <- gets balance
-  rate <- asks interestRate
-  let (endOfPeriod,ratePerAnno) = rate from
-      to = min day endOfPeriod
-      newFrom = succ to
-  modify (\st -> st { balancedUntil = newFrom })
-  when (to >= from && not (mixedAmountIsZero bal)) $ do
-    diff <- asks dayCountConvention
-    yearDays <- daysInYear to
-    let days = (from `diff` to) + 1
-        interest = mixed [ a { aquantity = (aquantity a * ratePerAnno) / fromInteger yearDays * fromInteger days } | a <- amounts bal ]
-    modify (\st -> st { accruedDays = accruedDays st + days
-                      , accruedInterest = accruedInterest st + interest
-                      })
-    onTransactionsOnly <- asks postOnTransactions
-    unless onTransactionsOnly (postInterest to (Just ratePerAnno))
-  when (newFrom <= day) (accrueInterest day)
+  when (day < pred from) $
+    error "hledger-interest: cannot compute interest backwards; transactions must be ordered by effective date"
+  -- A second transaction on the same day must not rewind the accrual cursor.
+  when (day >= from) $
+    if mixedAmountIsZero bal
+      -- No rate is needed before the first loan or while its balance is zero.
+      then modify (\st -> st { balancedUntil = succ day })
+      else do
+        rate <- asks interestRate
+        let (endOfPeriod,ratePerAnno) = rate from
+            to = min day endOfPeriod
+            newFrom = succ to
+        when (to < from) $
+          error "hledger-interest: interest rate period ends before its start"
+        modify (\st -> st { balancedUntil = newFrom })
+        diff <- asks dayCountConvention
+        yearDays <- daysInYear to
+        let days = (from `diff` to) + 1
+            interest = mapMixedAmount (\a -> a { aquantity = (aquantity a * ratePerAnno) / fromInteger yearDays * fromInteger days }) bal
+        modify (\st -> st { accruedDays = accruedDays st + days
+                          , accruedInterest = accruedInterest st + interest
+                          })
+        onTransactionsOnly <- asks postOnTransactions
+        unless onTransactionsOnly (postInterest to (Just ratePerAnno))
+        when (newFrom <= day) (accrueInterest day)
 
 -- | Post all accrued interest as one transaction on the given day. The
 -- description mentions the rate only if one is given, i.e. if the interest
@@ -122,7 +130,7 @@ mkTrans day days interest ratePerAnno = do
       -- two decimal points
       pTarget = nullposting
           { paccount       = targetAcc
-          , pamount        = mixed [ setMinPrecision 2 a | a <- amounts interest ]
+          , pamount        = mapMixedAmount (setMinPrecision 2) interest
           , ptype          = RegularPosting
           , ptransaction   = Just t
           }
@@ -134,6 +142,9 @@ mkTrans day days interest ratePerAnno = do
           }
   return t
   where
+#if MIN_VERSION_hledger_lib(1,32,0)
+    setMinPrecision = amountSetPrecisionMin
+#else
     -- Copy of amountSetPrecisionMin (with amountDisplayPrecision inlined) from
     -- hledger-lib >= 1.32, which older hledger-lib versions (still allowed by our
     -- lower bound) do not provide
@@ -143,6 +154,7 @@ mkTrans day days interest ratePerAnno = do
           case asprecision $ astyle a of
             Precision n      -> n
             NaturalPrecision -> decimalPlaces (normalizeDecimal (aquantity a))
+#endif
 
 showPercent :: Decimal -> String
 showPercent r = shows (r * 100) "%"

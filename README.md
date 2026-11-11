@@ -47,6 +47,11 @@ When run, hledger-interest reads the [ledger
 file](http://hledger.org/MANUAL.html#file-format) designated by the
 `--file` flag and filters all transactions that change the account
 specified on the command line. All other accounts will be ignored. Every
+account name must be specified in full and is matched literally, including
+any punctuation; selecting a parent account does not include its subaccounts.
+An account with no matching transactions produces an error. Transactions
+are processed in effective-date order, using the secondary date when one
+is present and the primary date otherwise. Every
 time a transaction modifies the given account's balance -- thereby
 changing the amount of money that earns interest --, hledger-interest
 transfers the interest that accrued so far. Interest will be debited
@@ -103,16 +108,22 @@ cabal test regression --test-show-details=direct
 ```
 
 The cases in `tests/golden-tests.hs` run fixed journals from `tests/fixtures/`
-and compare stdout exactly with `tests/golden/*.golden`. Every command
-must also exit successfully with empty stderr. Coverage includes all
+and compare stdout bytes exactly with `tests/golden/*.golden`, preserving
+Unicode. Successful commands must exit with empty stderr; error cases
+check the exit status, empty stdout, and the expected diagnostic. Coverage includes all
 four day-count conventions with constant, annual, and scheduled rates;
 the BGB288, DB24, and ING-DiBa models; leap days and month/year ends;
 rate changes, same-day payments, compounding versus separate interest
 accounts, deferred posting, zero/negative rates, and verbose output.
+Additional cases cover secondary dates, literal account names, Unicode,
+the start of each historical rate table, and invalid arguments and dates.
 Tests deliberately avoid `--today` so results do not depend on the clock.
 
 To add a case, add its argument list to `tests/golden-tests.hs` and, if needed,
-add a fixture journal. To record or intentionally update expected output:
+add a fixture journal. Missing baselines fail the suite, even with
+`--accept`. For a new golden case, first create an empty baseline explicitly
+(for example, `touch tests/golden/new-case.golden`). Then record or
+intentionally update expected output:
 
 ```sh
 cabal test regression --test-options=--accept

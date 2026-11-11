@@ -1,0 +1,15 @@
+2023-01-01 Loan
+    Assets:Bank  EUR 10000.00
+    Liabilities:Loan(1)
+
+2023-01-15 Different account
+    Assets:Bank  EUR 1000.00
+    Liabilities:Loan1
+
+2023-01-20 Subaccount
+    Assets:Bank  EUR 1000.00
+    Liabilities:Loan(1):Other
+
+2023-02-01 Payment
+    Assets:Bank  EUR -100.00
+    Liabilities:Loan(1)

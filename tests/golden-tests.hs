@@ -1,24 +1,86 @@
 module Main (main) where
 
-import qualified Data.ByteString.Lazy.Char8 as B
+import qualified Data.ByteString.Lazy as B
+import qualified Data.ByteString.Lazy.Char8 as BC
 import System.Exit (ExitCode(..))
-import System.Process (readProcessWithExitCode)
-import Test.Tasty (defaultMain, testGroup)
-import Test.Tasty.Golden (goldenVsString)
+import System.Process.Typed (proc, readProcess, setStdin, closed)
+import Test.Tasty (defaultMain, localOption, testGroup, TestTree)
+import Test.Tasty.Golden (goldenVsString, NoCreateFile(..))
+import Test.Tasty.HUnit (testCase, assertBool, (@?=))
 
--- Argument lists avoid shell quoting and make every invocation reproducible.
 main :: IO ()
 main = defaultMain $ testGroup "CLI regression"
-  [ goldenVsString name ("tests/golden/" ++ name ++ ".golden") $ do
-      (status, out, err) <- readProcessWithExitCode "hledger-interest"
-        (["--file=tests/fixtures/" ++ fixture ++ ".journal",
-          "--source=Expenses:Interest", "--target=" ++ target] ++ args ++
-          ["Liabilities:Loan"]) ""
-      if status == ExitSuccess && null err
-        then pure (B.pack out)
-        else fail ("Unexpected exit status or stderr: " ++ show status ++ "\n" ++ err)
-  | (name, fixture, target, args) <- cases
+  [ localOption (NoCreateFile True) $ testGroup "golden"
+      ([ goldenCase name fixture "Liabilities:Loan" target args
+       | (name, fixture, target, args) <- cases
+       ] ++
+       [ goldenCase "effective-dates" "effective-dates" "Liabilities:Loan"
+           "Liabilities:Interest" ["--annual=0.05", "--act", "--quiet"]
+       , goldenCase "literal-account" "literal-account" "Liabilities:Loan(1)"
+           "Liabilities:Loan(1)" ["--annual=0.05", "--act"]
+       , goldenCase "unicode" "unicode" "Liabilities:Prêt"
+           "Liabilities:Prêt" ["--annual=0.05", "--act"]
+       ] ++
+       [ goldenCase (model ++ "-first-period") (model ++ "-start")
+           "Liabilities:Loan" "Liabilities:Interest" [flag, "--quiet"]
+       | (model, flag) <- bankModels
+       ])
+  , testGroup "errors"
+      ([ failureCase (model ++ "-before-coverage")
+           (arguments "before-coverage" "Liabilities:Loan" "Liabilities:Interest" [flag, "--quiet"])
+           ("hledger-interest: no " ++ label ++ " is known for 2000-01-02")
+       | (model, flag, label) <-
+           [("ing-diba", "--ing-diba", "ING-DiBa interest rate"),
+            ("db24", "--db24", "Deutsche Bank 24 interest rate"),
+            ("bgb288", "--bgb288", "BGB base rate")]
+       ] ++
+       [ failureCase ("invalid-" ++ flag)
+           (arguments "boundaries" "Liabilities:Loan" "Liabilities:Interest"
+             ["--act", "--" ++ flag ++ "=bogus"])
+           ("invalid value for --" ++ flag ++ ": bogus")
+       | flag <- ["constant", "annual", "annual-schedule"]
+       ] ++
+       [ failureCase "abbreviated-account"
+           (arguments "boundaries" "Loan" "Liabilities:Interest" ["--annual=0.05", "--act"])
+           "no transactions found for account Loan"
+       , failureCase "missing-account-before-reading-journal"
+           ["--file=tests/fixtures/does-not-exist.journal", "--source=Expenses:Interest",
+            "--target=Liabilities:Interest", "--act", "--annual=0.05"]
+           "required argument ACCOUNT is missing"
+       , failureCase "invalid-rate-before-reading-journal"
+           ["--file=tests/fixtures/does-not-exist.journal", "--source=Expenses:Interest",
+            "--target=Liabilities:Interest", "--act", "--annual=bogus", "Liabilities:Loan"]
+           "invalid value for --annual: bogus"
+       ])
   ]
+
+bankModels :: [(String, String)]
+bankModels = [("bgb288", "--bgb288"), ("db24", "--db24"), ("ing-diba", "--ing-diba")]
+
+-- Capture bytes directly, preserving Unicode and avoiding locale-dependent decoding.
+runCLI :: [String] -> IO (ExitCode, B.ByteString, B.ByteString)
+runCLI = readProcess . setStdin closed . proc "hledger-interest"
+
+arguments :: String -> String -> String -> [String] -> [String]
+arguments fixture account target args =
+  ["--file=tests/fixtures/" ++ fixture ++ ".journal",
+   "--source=Expenses:Interest", "--target=" ++ target] ++ args ++ [account]
+
+goldenCase :: String -> String -> String -> String -> [String] -> TestTree
+goldenCase name fixture account target args =
+  goldenVsString name ("tests/golden/" ++ name ++ ".golden") $ do
+    (status, out, err) <- runCLI (arguments fixture account target args)
+    status @?= ExitSuccess
+    err @?= B.empty
+    pure out
+
+failureCase :: String -> [String] -> String -> TestTree
+failureCase name args message = testCase name $ do
+  (status, out, err) <- runCLI args
+  status @?= ExitFailure 1
+  out @?= B.empty
+  assertBool ("Expected error: " ++ message ++ "\nActual stderr: " ++ BC.unpack err)
+    (BC.pack (message ++ "\n") `B.isPrefixOf` err)
 
 cases :: [(String, String, String, [String])]
 cases =

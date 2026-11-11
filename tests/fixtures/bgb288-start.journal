@@ -1,0 +1,7 @@
+2001-12-31 Loan
+    Assets:Bank  EUR 10000.00
+    Liabilities:Loan
+
+2002-01-02 Payment
+    Assets:Bank  EUR -100.00
+    Liabilities:Loan

@@ -1,0 +1,12 @@
+2023-01-01 Loan
+    Assets:Bank             EUR 10000.00
+    Liabilities:Loan(1)    EUR -10000.00
+
+2023-02-01 5% interest for EUR -10000.00 over 31 days
+    Liabilities:Loan(1)      EUR -42.47
+    Expenses:Interest         EUR 42.47
+
+2023-02-01 Payment
+    Assets:Bank             EUR -100.00
+    Liabilities:Loan(1)      EUR 100.00
+

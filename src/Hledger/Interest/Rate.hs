@@ -63,20 +63,21 @@ basiszins :: Decimal -> Rate
 basiszins r date =
   case tableRate basiszinsPeriods date of
     Just (to, p) -> (to, r + p)
-    Nothing      -> error ("hledger-interest: the BGB base rate after " ++ show lastEnd ++
+    Nothing
+      | date <= lastEnd -> error ("hledger-interest: no BGB base rate is known for " ++ show date)
+      | otherwise -> error ("hledger-interest: the BGB base rate after " ++ show lastEnd ++
                            " is not known yet; please update basiszinsTable in src/Hledger/Interest/Rate.hs")
   where
     lastEnd = case reverse basiszinsPeriods of
                 (_,to,_) : _ -> to
                 []           -> error "basiszinsTable is empty"
 
--- | Find the period of a (from, to, rate) table that has not ended yet at
--- the given date, and return its end date and rate.
+-- | Find the period containing the given date and return its end date and rate.
 tableRate :: [(Day, Day, Decimal)] -> Day -> Maybe (Day, Decimal)
 tableRate table date =
-  case dropWhile (\(_,to,_) -> to < date) table of
-    (_,to,p) : _ -> Just (to, p)
-    []           -> Nothing
+  case find (\(from,to,_) -> from <= date && date <= to) table of
+    Just (_,to,p) -> Just (to, p)
+    Nothing       -> Nothing
 
 -- | Like 'tableRate', but fail with an error message if the table does not
 -- cover the given date.

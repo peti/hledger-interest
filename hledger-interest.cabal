@@ -151,5 +151,6 @@ Test-suite regression
   default-language:    Haskell2010
   hs-source-dirs:      tests
   main-is:             golden-tests.hs
-  build-depends:       base >= 4.9 && < 5, bytestring, process, tasty, tasty-golden
+  build-depends:       base >= 4.9 && < 5, bytestring, typed-process, tasty,
+                       tasty-golden >= 2.3.6, tasty-hunit
   build-tool-depends:  hledger-interest:hledger-interest

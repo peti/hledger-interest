@@ -1,20 +1,19 @@
 module Main ( main ) where
 
 import Hledger.Interest
-import Hledger.Query
 import Hledger.Read
-import Hledger.Utils ( toRegex' )
 
-import Control.Exception ( ErrorCall(..), bracket, handle )
+import Control.Exception ( ErrorCall(..), finally, handle )
 import Control.Monad
 import Data.List ( sortOn )
-import Data.Maybe
 import qualified Data.Text as T
+import qualified Data.Text.IO as TIO
 import Data.Version
 import System.Console.GetOpt
 import System.Environment
 import System.Exit
 import System.IO
+import Text.Read (readEither)
 
 import Paths_hledger_interest ( version )
 
@@ -26,7 +25,7 @@ data Options = Options
   , optSourceAcc        :: String
   , optTargetAcc        :: String
   , optDCC              :: Maybe DayCountConvention
-  , optRate             :: Maybe Rate
+  , optRate             :: Either String Rate
   , optBalanceToday     :: Bool
   , optPostOnTxns       :: Bool
   , optIgnoreAssertions :: Bool
@@ -41,7 +40,7 @@ defaultOptions = Options
   , optSourceAcc        = ""
   , optTargetAcc        = ""
   , optDCC              = Nothing
-  , optRate             = Nothing
+  , optRate             = Left "no interest rate specified\n"
   , optBalanceToday     = False
   , optPostOnTxns       = False
   , optIgnoreAssertions = False
@@ -63,13 +62,20 @@ options =
  , Option []    ["30-360"]            (NoArg (\o -> o { optDCC = Just diff30_360 }))                       "use '30/360' day counting convention"
  , Option []    ["30E-360"]           (NoArg (\o -> o { optDCC = Just diff30E_360 }))                      "use '30E/360' day counting convention"
  , Option []    ["30E-360isda"]       (NoArg (\o -> o { optDCC = Just diff30E_360isda }))                  "use '30E/360isda' day counting convention"
- , Option []    ["constant"]          (ReqArg (\r o -> o { optRate = Just (constant (read r)) }) "RATE")   "constant interest rate"
- , Option []    ["annual"]            (ReqArg (\r o -> o { optRate = Just (perAnno (read r)) }) "RATE")    "annual interest rate"
- , Option []    ["annual-schedule"]   (ReqArg (\r o -> o { optRate = Just (perAnnoSchedule (read r)) })    "SCHEDULE")    "schedule of annual interest rates.\nsyntax: '[(Date1,Rate1),(Date2,Rate2),...]'"
- , Option []    ["bgb288"]            (NoArg (\o -> o { optRate = Just bgb288, optDCC = Just diffAct }))   "compute interest according to German BGB288"
- , Option []    ["db24"]              (NoArg (\o -> o { optRate = Just db24, optDCC = Just diff30E_360 })) "HACK: Deutsche Bank 24"
- , Option []    ["ing-diba"]          (NoArg (\o -> o { optRate = Just ingDiba, optDCC = Just diffAct }))  "HACK: compute interest according for Ing-Diba Tagesgeld account"
+ , Option []    ["constant"]          (ReqArg (setRate "--constant" constant) "RATE")   "constant interest rate"
+ , Option []    ["annual"]            (ReqArg (setRate "--annual" perAnno) "RATE")    "annual interest rate"
+ , Option []    ["annual-schedule"]   (ReqArg (setRate "--annual-schedule" perAnnoSchedule)    "SCHEDULE")    "schedule of annual interest rates.\nsyntax: '[(Date1,Rate1),(Date2,Rate2),...]'"
+ , Option []    ["bgb288"]            (NoArg (\o -> o { optRate = Right bgb288, optDCC = Just diffAct }))   "compute interest according to German BGB288"
+ , Option []    ["db24"]              (NoArg (\o -> o { optRate = Right db24, optDCC = Just diff30E_360 })) "HACK: Deutsche Bank 24"
+ , Option []    ["ing-diba"]          (NoArg (\o -> o { optRate = Right ingDiba, optDCC = Just diffAct }))  "HACK: compute interest according for Ing-Diba Tagesgeld account"
  ]
+
+setRate :: Read a => String -> (a -> Rate) -> String -> Options -> Options
+setRate flag makeRate value opts = opts { optRate = parsed }
+  where
+    parsed = case readEither value of
+      Left _ -> Left ("invalid value for " ++ flag ++ ": " ++ value ++ "\n")
+      Right r -> Right (makeRate r)
 
 usageMessage :: String
 usageMessage = usageInfo header options
@@ -86,34 +92,39 @@ parseOpts argv =
       (_,_,errs) -> commandLineError (concat errs)
 
 main :: IO ()
-main = bracket (return ()) (\() -> hFlush stdout >> hFlush stderr) $ \() -> do
+main = handle (\(ErrorCall msg) -> hPutStrLn stderr msg >> exitFailure) $
+  run `finally` (hFlush stdout >> hFlush stderr)
+
+run :: IO ()
+run = do
   (opts, args) <- getArgs >>= parseOpts
   when (optShowVersion opts) (putStrLn (showVersion version) >> exitSuccess)
   when (optShowHelp opts) (putStr usageMessage >> exitSuccess)
   when (null (optSourceAcc opts)) (commandLineError "required --source option is missing\n")
   when (null (optTargetAcc opts)) (commandLineError "required --target option is missing\n")
-  when (isNothing (optDCC opts)) (commandLineError "no day counting convention specified\n")
-  when (isNothing (optRate opts)) (commandLineError "no interest rate specified\n")
-  let ledgerInputOptions = definputopts { balancingopts_ = (balancingopts_ definputopts) { ignore_assertions_ = optIgnoreAssertions opts } }
-  inputFiles <- case optInput opts of
-                  [] -> pure <$> defaultJournalPath
-                  fs -> return (reverse fs)
-  jnl' <- handle (\(ErrorCall msg) -> hPutStrLn stderr msg >> exitFailure) $
-            runExceptT (readJournalFiles ledgerInputOptions inputFiles) >>= either fail return
+  dcc <- maybe (commandLineError "no day counting convention specified\n") pure (optDCC opts)
+  rate <- either commandLineError pure (optRate opts)
   interestAcc <- case args of
                    []    -> commandLineError "required argument ACCOUNT is missing\n"
                    [acc] -> return $ T.pack acc
                    _     -> commandLineError "only one interest ACCOUNT may be specified\n"
-  let jnl = filterJournalTransactions (Acct (toRegex' interestAcc)) jnl'
-      ts  = sortOn tdate (jtxns jnl)
+  let ledgerInputOptions = definputopts { balancingopts_ = (balancingopts_ definputopts) { ignore_assertions_ = optIgnoreAssertions opts } }
+  inputFiles <- case optInput opts of
+                  [] -> pure <$> defaultJournalPath
+                  fs -> return (reverse fs)
+  jnl <- runExceptT (readJournalFiles ledgerInputOptions inputFiles) >>=
+           either (\msg -> hPutStrLn stderr msg >> exitFailure) pure
+  let ts = sortOn transactionDate2 $
+             filter (any ((== interestAcc) . paccount) . tpostings) (jtxns jnl)
       cfg = Config
             { interestAccount = interestAcc
             , sourceAccount = T.pack (optSourceAcc opts)
             , targetAccount = T.pack (optTargetAcc opts)
-            , dayCountConvention = fromJust (optDCC opts)
-            , interestRate = fromJust (optRate opts)
+            , dayCountConvention = dcc
+            , interestRate = rate
             , postOnTransactions = optPostOnTxns opts
             }
+  when (null ts) $ commandLineError ("no transactions found for account " ++ T.unpack interestAcc ++ "\n")
   thisDay <- getCurrentDay
   let finalize
         | optBalanceToday opts = computeInterest thisDay
@@ -122,4 +133,4 @@ main = bracket (return ()) (\() -> hFlush stdout >> hFlush stderr) $ \() -> do
       result
         | optVerbose opts = ts' ++ ts
         | otherwise       = ts'
-  mapM_ (putStr . T.unpack . showTransaction) (sortOn tdate result)
+  mapM_ (TIO.putStr . showTransaction) (sortOn transactionDate2 result)
