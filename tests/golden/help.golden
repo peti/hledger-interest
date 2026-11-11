@@ -24,6 +24,7 @@ Default: post at transactions, rate-period ends, and year ends.
               --30E-360isda               use '30E/360isda' day counting convention
               --constant=RATE             fixed annual interest rate
               --annual=RATE               alias for --constant
-              --schedule=SCHEDULE         schedule of annual interest rates.
+              --schedule=SCHEDULE         annualized rates and their effective dates;
+                                          rates are fractions: 0.05 means 5% per year
                                           syntax: '[(Date1,Rate1),(Date2,Rate2),...]'
               --annual-schedule=SCHEDULE  alias for --schedule

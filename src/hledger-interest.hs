@@ -67,7 +67,7 @@ options =
  , Option []    ["30E-360isda"]       (NoArg (\o -> o { optDCC = Just diff30E_360isda }))                  "use '30E/360isda' day counting convention"
  , Option []    ["constant"]          (ReqArg (setRate "--constant" constant) "RATE")                    "fixed annual interest rate"
  , Option []    ["annual"]            (ReqArg (setRate "--annual" perAnno) "RATE")                        "alias for --constant"
- , Option []    ["schedule"]          (ReqArg (setRate "--schedule" scheduled) "SCHEDULE")                "schedule of annual interest rates.\nsyntax: '[(Date1,Rate1),(Date2,Rate2),...]'"
+ , Option []    ["schedule"]          (ReqArg (setRate "--schedule" scheduled) "SCHEDULE")                "annualized rates and their effective dates;\nrates are fractions: 0.05 means 5% per year\nsyntax: '[(Date1,Rate1),(Date2,Rate2),...]'"
  , Option []    ["annual-schedule"]   (ReqArg (setRate "--annual-schedule" scheduled) "SCHEDULE")         "alias for --schedule"
  ]
 

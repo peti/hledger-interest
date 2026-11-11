@@ -22,7 +22,7 @@ Description:
  Michael's hledger library. Its purpose is to compute interest for a
  given ledger account. Using command line flags, the program can be
  configured to use various schemes for day-counting, such as act\/act,
- 30\/360, 30E\/360, and 30\/360isda. It supports constant rates,
+ 30\/360, 30E\/360, and 30E\/360isda. It supports constant rates,
  annual interest with a fixed rate, and schedules of annual rates
  supplied on the command line.
  .
@@ -128,7 +128,8 @@ Description:
  >               --30E-360isda               use '30E/360isda' day counting convention
  >               --constant=RATE             fixed annual interest rate
  >               --annual=RATE               alias for --constant
- >               --schedule=SCHEDULE         schedule of annual interest rates.
+ >               --schedule=SCHEDULE         annualized rates and their effective dates;
+ >                                           rates are fractions: 0.05 means 5% per year
  >                                           syntax: '[(Date1,Rate1),(Date2,Rate2),...]'
  >               --annual-schedule=SCHEDULE  alias for --schedule
 

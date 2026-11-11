@@ -11,12 +11,11 @@ Michael's hledger library](http://hledger.org/). Its purpose is to
 compute interest for a given ledger account. Using command line flags,
 the program can be configured to use various [day counting
 conventions](http://en.wikipedia.org/wiki/Day_count_convention), such as
-"act/act", "30/360", "30E/360", and "30/360isda". It supports
-constant rates, fixed annual rates, and schedules of annual rates supplied
-on the command line.
+"act/act", "30/360", "30E/360", and "30E/360isda". It supports
+fixed annualized rates and rates that change on specified dates. Rates
+are expressed as fractions: `0.05` means 5% per year.
 
-An overview over the available run-time options can be displayed by
-running "`hledger-interest --help`":
+Display the available command-line options with `hledger-interest --help`:
 
     Usage: hledger-interest [OPTION...] ACCOUNT
     Default: post at transactions, rate-period ends, and year ends.
@@ -44,24 +43,25 @@ running "`hledger-interest --help`":
                   --30E-360isda               use '30E/360isda' day counting convention
                   --constant=RATE             fixed annual interest rate
                   --annual=RATE               alias for --constant
-                  --schedule=SCHEDULE         schedule of annual interest rates.
+                  --schedule=SCHEDULE         annualized rates and their effective dates;
+                                              rates are fractions: 0.05 means 5% per year
                                               syntax: '[(Date1,Rate1),(Date2,Rate2),...]'
                   --annual-schedule=SCHEDULE  alias for --schedule
 
 When run, hledger-interest reads the [ledger
 file](http://hledger.org/MANUAL.html#file-format) designated by the
-`--file` flag and filters all transactions that change the account
-specified on the command line. All other accounts will be ignored. Every
-account name must be specified in full and is matched literally, including
-any punctuation; selecting a parent account does not include its subaccounts.
+`--file` flag and selects transactions containing postings to the account
+specified on the command line. The selected account name must be specified
+in full and is matched literally, including punctuation; selecting a parent
+account does not include its subaccounts. Other postings in a matching
+transaction are preserved when the input journal is echoed.
 An account with no matching transactions produces an error. Transactions
 are processed in effective-date order, using the secondary date when one
-is present and the primary date otherwise. Every
-time a transaction modifies the given account's balance -- thereby
-changing the amount of money that earns interest --, hledger-interest
-transfers the interest that accrued so far. Interest will be debited
-from the account designed by the `--source` flag and credited to the
-account designed by the `--target` flag.
+is present and the primary date otherwise. Interest accrued through each
+transaction date is posted before that transaction changes the balance.
+Generated interest is booked to the account designated by `--target`, with
+the opposite amount booked to the account designated by `--source`.
+The amounts' signs depend on the balance and rate.
 
 ## Day counting conventions
 
@@ -78,18 +78,18 @@ ends. Both are counted with the selected convention:
   [Actual/Actual ISDA](https://en.wikipedia.org/wiki/Day_count_convention#Actual/Actual_ISDA)
   method for every rate option. Internal calculation splits do not cause
   compounding unless interest is actually posted.
-- `--30-360`, `--30E-360`, and `--30E-360isda` count every month as 30
-  days and every year as 360 days. They differ in how they treat the
-  31st and the end of February; see the [Wikipedia
-  article](https://en.wikipedia.org/wiki/Day_count_convention#30/360_methods)
-  for details. `--30E-360isda` does not apply the February exception
-  for the maturity date, because hledger-interest has no notion of
-  maturity.
+- `--30-360` uses 30-day month offsets and a 360-day year, without
+  adjusting day numbers at month ends.
+- `--30E-360` also uses a 360-day year, but replaces the 31st with the
+  30th when counting days. February retains its actual last day.
+- `--30E-360isda` additionally treats the last day of February as the
+  30th. It does not apply the February exception for the maturity date,
+  because hledger-interest has no notion of maturity.
 
 Rate selection and posting frequency are independent. By default, interest
 is posted on transaction dates, at the end of each rate period, and on
-December 31st. Crediting interest to the interest-bearing account compounds
-it from the posting date.
+December 31st. Posting interest to the interest-bearing account compounds
+it from the following day.
 
 | Posting option | Transactions | Rate-period ends | Year ends |
 |---|---|---|---|
@@ -98,8 +98,8 @@ it from the posting date.
 | `--post-on-transactions` | Yes | No | No |
 
 `--post-on-rate-changes` posts at transactions and rate-period ends, without
-an additional automatic year-end posting. A transaction
-on December 31st or a new rate taking effect on January 1st still causes a
+an additional automatic year-end posting. A transaction on December 31st
+or a new rate taking effect on January 1st still causes a
 posting on December 31st. `--post-on-transactions` takes precedence if both
 flags are supplied, regardless of their order. All modes also post on the
 final day when `--today` is used.
@@ -127,18 +127,18 @@ cabal test regression --test-show-details=direct
 The cases in `tests/golden-tests.hs` run fixed journals from `tests/fixtures/`
 and compare stdout bytes exactly with `tests/golden/*.golden`, preserving
 Unicode. Successful commands must exit with empty stderr; error cases
-check the exit status, empty stdout, and the expected diagnostic. Coverage includes all
-four day-count conventions with constant, annual, and scheduled rates.
-Scheduled rates have golden coverage for all three posting modes across
-all four conventions. Other cases cover
-historical rate schedules; leap days and month/year ends;
-rate changes, same-day payments, compounding versus separate interest
-accounts, deferred posting, zero/negative rates, and verbose output.
-Additional cases cover secondary dates, literal account names, Unicode,
+check the exit status, empty stdout, and the expected diagnostic. Coverage
+includes all four day-count conventions with constant, annual, and scheduled
+rates. Scheduled rates have golden coverage for all three posting modes
+across all four conventions. Other cases cover historical rate schedules,
+leap days, month and year ends, rate changes, same-day payments, compounding
+versus separate interest accounts, deferred posting, zero and negative
+rates, and verbose output. Additional cases cover secondary dates,
+literal account names, Unicode,
 the start of each historical schedule, dates outside the former coverage
-limits, and invalid arguments. The historical BGB288, DB24, and ING-DiBa data live only
-in `tests/HistoricalRates.hs`; tests pass them through `--schedule`
-with explicit day-count flags. These are fixed regression snapshots.
+limits, and invalid arguments. The historical BGB288, DB24, and ING-DiBa
+data live only in `tests/HistoricalRates.hs`; tests pass them through
+`--schedule` with explicit day-count flags. These are fixed regression snapshots.
 The DB24 case uses `--post-on-rate-changes` and reproduces the original
 built-in mode's output exactly. Tests also cover rate aliases and posting
 flag precedence across all four day-count conventions.
@@ -163,115 +163,92 @@ files are included in source distributions, and CI runs the suite.
 
 ## Examples
 
-Suppose that you've loaned 1000 Euro from your bank at an annual
-interest rate of 5%, and that you would like to see how interest
-develops over time. Then you would create a ledger file, say
-`loan.ledger`, that looks something like this:
+Suppose you borrowed EUR 1000 from your bank at 5% per year and made three
+repayments. Store the following journal in `loan.ledger`:
 
-    2010/09/26 Loan
-        Assets:Bank                     EUR 1000.00
+    2010-09-26 Loan
+        Assets:Bank          EUR 1000.00
         Liabilities:Loan
 
-Now, `ledger-interest` is run to determine the interest up until today:
-
-    $ hledger-interest -f loan.ledger --act --annual=0.05 --today -s Expenses:Interest -t Liabilities:Loan:Interest Liabilities:Loan
-    2010/09/26 Loan
-        Assets:Bank                     EUR 1000.00
+    2010-12-11 Payment
+        Assets:Bank          EUR -150.00
         Liabilities:Loan
 
-    2010/12/31 5.00% interest for EUR -1000.00 over 96 days
-        Liabilities:Loan:Interest       EUR -13.15
-        Expenses:Interest
-
-    2011/08/22 5.00% interest for EUR -1000.00 over 234 days
-        Liabilities:Loan:Interest       EUR -32.05
-        Expenses:Interest
-
-Note a separate credit account for the interest was chosen:
-`Liabilities:Loan:Interest`. Consequently, interest accrued in one
-interest period does *not* earn interest in the following periods. If
-interest is credited to the main account instead, that behavior changes:
-
-    $ hledger-interest -f loan.ledger --act --annual=0.05 --today -s Expenses:Interest -t Liabilities:Loan Liabilities:Loan
-    2010/09/26 Loan
-        Assets:Bank                     EUR 1000.00
+    2011-03-07 Payment
+        Assets:Bank          EUR -300.00
         Liabilities:Loan
 
-    2010/12/31 5.00% interest for EUR -1000.00 over 96 days
-        Liabilities:Loan                EUR -13.15
-        Expenses:Interest
-
-    2011/08/22 5.00% interest for EUR -1013.15 over 234 days
-        Liabilities:Loan                EUR -32.48
-        Expenses:Interest
-
-Of course, loans are supposed to be paid back, and these payments change
-the amount of interest accrued. Suppose that `loan.ledger` would be
-extended by the following transactions:
-
-    2010/12/11 Payment
-        Assets:Bank                     EUR -150.00
+    2011-08-21 Payment
+        Assets:Bank          EUR -150.00
         Liabilities:Loan
 
-    2011/03/07 Payment
-        Assets:Bank                     EUR -300.00
-        Liabilities:Loan
+To post interest to a separate account, run:
 
-    2011/08/21 Payment
-        Assets:Bank                     EUR -150.00
-        Liabilities:Loan
+    $ hledger-interest -f loan.ledger --quiet --act --annual=0.05 -s Expenses:Interest -t Liabilities:Loan:Interest Liabilities:Loan
+    2010-12-11 5% interest for EUR -1000.00 over 76 days
+        Liabilities:Loan:Interest      EUR -10.41
+        Expenses:Interest               EUR 10.41
 
-Then interest would develop as follows:
+    2010-12-31 5% interest for EUR -850.00 over 20 days
+        Liabilities:Loan:Interest       EUR -2.33
+        Expenses:Interest                EUR 2.33
 
-    $ hledger-interest -f loan.ledger --act --annual=0.05 -s Expenses:Interest -t Liabilities:Loan Liabilities:Loan
-    2010/09/26 Loan
-        Assets:Bank                     EUR 1000.00
-        Liabilities:Loan
+    2011-03-07 5% interest for EUR -850.00 over 66 days
+        Liabilities:Loan:Interest       EUR -7.68
+        Expenses:Interest                EUR 7.68
 
-    2010/12/11 5.00% interest for EUR -1000.00 over 76 days
-        Liabilities:Loan                EUR -10.41
-        Expenses:Interest
+    2011-08-21 5% interest for EUR -550.00 over 167 days
+        Liabilities:Loan:Interest      EUR -12.58
+        Expenses:Interest               EUR 12.58
 
-    2010/12/11 Payment
-        Assets:Bank                     EUR -150.00
-        Liabilities:Loan
+The target account, `Liabilities:Loan:Interest`, differs from the selected
+account, `Liabilities:Loan`, so the posted interest does not itself earn
+interest. Selecting the parent account does not include its subaccounts.
+The `--quiet` flag prints only generated interest postings.
 
-    2010/12/31 5.00% interest for EUR -860.41 over 20 days
-        Liabilities:Loan                EUR -2.36
-        Expenses:Interest
+To compound interest, use the loan account itself as the target:
 
-    2011/03/07 5.00% interest for EUR -862.77 over 66 days
-        Liabilities:Loan                EUR -7.80
-        Expenses:Interest
+    $ hledger-interest -f loan.ledger --quiet --act --annual=0.05 -s Expenses:Interest -t Liabilities:Loan Liabilities:Loan
+    2010-12-11 5% interest for EUR -1000.00 over 76 days
+        Liabilities:Loan       EUR -10.41
+        Expenses:Interest       EUR 10.41
 
-    2011/03/07 Payment
-        Assets:Bank                     EUR -300.00
-        Liabilities:Loan
+    2010-12-31 5% interest for EUR -860.41 over 20 days
+        Liabilities:Loan        EUR -2.36
+        Expenses:Interest        EUR 2.36
 
-    2011/08/21 5.00% interest for EUR -570.57 over 167 days
-        Liabilities:Loan                EUR -13.05
-        Expenses:Interest
+    2011-03-07 5% interest for EUR -862.77 over 66 days
+        Liabilities:Loan        EUR -7.80
+        Expenses:Interest        EUR 7.80
 
-    2011/08/21 Payment
-        Assets:Bank                     EUR -150.00
-        Liabilities:Loan
+    2011-08-21 5% interest for EUR -570.57 over 167 days
+        Liabilities:Loan       EUR -13.05
+        Expenses:Interest       EUR 13.05
 
-## Variable annual rates
+Interest posted on December 11th and at year end now becomes part of the
+principal for subsequent calculations. Add `--today` to either command to
+extend the calculation beyond the final repayment through the current date;
+that additional output depends on when the command runs.
 
-Use `--schedule` to supply rates and their effective dates, together
-with an explicit day-count convention. For example:
+## Variable annualized rates
+
+Use `--schedule` to supply annualized rates and their effective dates,
+together with an explicit day-count convention. For example:
 
 ```sh
 hledger-interest -f loan.ledger --act \
-  '--schedule=[(2023-01-01,0.05),(2023-07-01,0.07)]' \
+  '--schedule=[(2010-09-26,0.05),(2011-01-01,0.07)]' \
   --source=Expenses:Interest --target=Liabilities:Loan Liabilities:Loan
 ```
 
-This applies 5% from January 1, 2023, and 7% from July 1, 2023. Dates
+For the journal above, this applies 5% per year from September 26, 2010,
+and 7% per year from January 1, 2011. Rates can change on any date. Dates
 before the first entry earn zero interest, and the last rate continues
-indefinitely. By default, interest is posted at year ends, rate changes,
-and transaction dates. Use `--post-on-rate-changes` or
+indefinitely. By default, interest is posted at year ends, at the end of
+each rate period (the day before the next rate takes effect), and on
+transaction dates. Use `--post-on-rate-changes` or
 `--post-on-transactions` to control posting as explained above.
 `--annual-schedule` remains an alias for `--schedule`. Likewise,
-`--annual` is an alias for `--constant`; both specify a fixed annual rate. The executable contains no bank-specific or statutory
-rate tables; supply the appropriate schedule yourself.
+`--annual` is an alias for `--constant`; both specify a fixed annualized
+rate. The executable contains no bank-specific or statutory rate tables;
+supply the appropriate schedule yourself.

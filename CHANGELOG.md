@@ -27,7 +27,8 @@
 - Report invalid rate arguments and missing account arguments before
   reading the journal, and display computation errors without exception noise.
 - Preserve Unicode output in golden tests, require existing baselines,
-  and add regression cases for these fixes.
+  and cover all four day-count conventions with all three posting modes
+  for scheduled rates, as well as regression cases for these fixes.
 - Require hledger-lib >= 1.32 and use its precision helper directly.
 
 ## 1.7.0 (2026-11-11)
@@ -42,8 +43,8 @@ results in the following cases:
   stray entry in the table of base rates shadowed all later rates. The
   table has been fixed, checked against the rates published by the
   Deutsche Bundesbank, and extended up to 2026-12-31. Dates after the
-  end of the table now produce a clear error message instead of a
-  crash.
+  end of the table now fail with an explicit message requesting a
+  rate-table update.
 - `--annual-schedule` used the rate in effect at the start of a period
   until the next transaction or year end, ignoring any rate changes in
   between, and a new rate took effect only on the day after its start
@@ -63,11 +64,10 @@ results in the following cases:
 
 ### New features
 
-- The new `--post-on-transactions` flag posts interest only when the
-  balance changes (and on the final day with `--today`), rather than at
-  the end of every year and rate period. Interest is still computed
-  separately for every year and rate, but no longer compounds at the end
-  of each year
+- The new `--post-on-transactions` flag posts interest only on transaction
+  dates (and on the final day with `--today`). Year and rate boundaries
+  can still split the calculation, but do not themselves trigger posting
+  or compounding
   ([#16](https://github.com/peti/hledger-interest/issues/16),
   [#26](https://github.com/peti/hledger-interest/issues/26)).
 - Without `--file`, hledger-interest now reads `$LEDGER_FILE` or
