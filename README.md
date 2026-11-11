@@ -102,7 +102,7 @@ Run the golden tests against the Cabal-built executable with:
 cabal test regression --test-show-details=direct
 ```
 
-The cases in `tests/Main.hs` run fixed journals from `tests/fixtures/`
+The cases in `tests/golden-tests.hs` run fixed journals from `tests/fixtures/`
 and compare stdout exactly with `tests/golden/*.golden`. Every command
 must also exit successfully with empty stderr. Coverage includes all
 four day-count conventions with constant, annual, and scheduled rates;
@@ -111,7 +111,7 @@ rate changes, same-day payments, compounding versus separate interest
 accounts, deferred posting, zero/negative rates, and verbose output.
 Tests deliberately avoid `--today` so results do not depend on the clock.
 
-To add a case, add its argument list to `tests/Main.hs` and, if needed,
+To add a case, add its argument list to `tests/golden-tests.hs` and, if needed,
 add a fixture journal. To record or intentionally update expected output:
 
 ```sh
