@@ -33,17 +33,24 @@ data Config = Config
   , targetAccount :: AccountName
   , dayCountConvention :: DayCountConvention
   , interestRate :: Rate
+  , postOnTransactions :: Bool
+    -- ^ Post accrued interest only on transaction dates rather than at the
+    -- end of every rate period (e.g. at every year end with 'perAnno').
   }
 
 data InterestState = InterestState
   { balancedUntil :: Day
   , balance :: MixedAmount
+  , accruedDays :: Integer          -- ^ interest accrued but not posted yet
+  , accruedInterest :: MixedAmount
   }
 
 nullInterestState :: InterestState
 nullInterestState = InterestState
   { balancedUntil = nulldate
   , balance = nullmixedamt
+  , accruedDays = 0
+  , accruedInterest = nullmixedamt
   }
 
 processTransaction :: Transaction -> Computer ()
@@ -56,8 +63,12 @@ processTransaction ts = do
     bal <- gets balance
     modify (\st -> st { balance = bal + pamount p })
 
+-- | Compute and post all interest up to and including the given day.
 computeInterest :: Day -> Computer ()
-computeInterest day = do
+computeInterest day = accrueInterest day >> postInterest day Nothing
+
+accrueInterest :: Day -> Computer ()
+accrueInterest day = do
   from <- gets balancedUntil
   bal <- gets balance
   rate <- asks interestRate
@@ -67,25 +78,43 @@ computeInterest day = do
   modify (\st -> st { balancedUntil = newFrom })
   when (to >= from && not (mixedAmountIsZero bal)) $ do
     diff <- asks dayCountConvention
-    t <- mkTrans to ((from `diff` to) + 1) ratePerAnno
+    yearDays <- daysInYear to
+    let days = (from `diff` to) + 1
+        interest = mixed [ a { aquantity = (aquantity a * ratePerAnno) / fromInteger yearDays * fromInteger days } | a <- amounts bal ]
+    modify (\st -> st { accruedDays = accruedDays st + days
+                      , accruedInterest = accruedInterest st + interest
+                      })
+    onTransactionsOnly <- asks postOnTransactions
+    unless onTransactionsOnly (postInterest to (Just ratePerAnno))
+  when (newFrom <= day) (accrueInterest day)
+
+-- | Post all accrued interest as one transaction on the given day. The
+-- description mentions the rate only if one is given, i.e. if the interest
+-- was accrued over a single rate period.
+postInterest :: Day -> Maybe Decimal -> Computer ()
+postInterest day ratePerAnno = do
+  st <- get
+  when (accruedDays st > 0) $ do
+    put st { accruedDays = 0, accruedInterest = nullmixedamt }
+    t <- mkTrans day (accruedDays st) (accruedInterest st) ratePerAnno
     tell [t]
     processTransaction t
-  when (newFrom <= day) (computeInterest day)
 
 daysInYear :: Day -> Computer Integer
 daysInYear now = asks dayCountConvention >>= \diff -> return (day1 `diff` day2)
   where day1 = fromGregorian (fst (toOrdinalDate now)) 1 1
         day2 = fromGregorian (succ (fst (toOrdinalDate now))) 1 1
 
-mkTrans :: Day -> Integer -> Decimal -> Computer Transaction
-mkTrans day days ratePerAnno = do
+-- | Create the transaction for the given interest, which was accrued over
+-- the given number of days.
+mkTrans :: Day -> Integer -> MixedAmount -> Maybe Decimal -> Computer Transaction
+mkTrans day days interest ratePerAnno = do
   bal <- gets balance
   srcAcc <- asks sourceAccount
   targetAcc <- asks targetAccount
-  perDayScalar <- daysInYear day
   let t = nulltransaction
           { tdate          = day
-          , tdescription   = T.pack $ showPercent ratePerAnno ++ " interest for " ++ showMixedAmountOneLine bal ++ " over " ++ show days ++ " days"
+          , tdescription   = T.pack $ maybe "" (\r -> showPercent r ++ " ") ratePerAnno ++ "interest for " ++ showMixedAmountOneLine bal ++ " over " ++ show days ++ " days"
           , tpostings      = [pTarget,pSource]
           }
       -- balance might have been an exact amount, in which case its precision might
@@ -93,7 +122,7 @@ mkTrans day days ratePerAnno = do
       -- two decimal points
       pTarget = nullposting
           { paccount       = targetAcc
-          , pamount        = mixed [ setMinPrecision 2 (a { aquantity = (aquantity a * ratePerAnno) / fromInteger perDayScalar * fromInteger days}) | a <- amounts bal ]
+          , pamount        = mixed [ setMinPrecision 2 a | a <- amounts interest ]
           , ptype          = RegularPosting
           , ptransaction   = Just t
           }

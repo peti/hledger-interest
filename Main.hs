@@ -28,6 +28,7 @@ data Options = Options
   , optDCC              :: Maybe DayCountConvention
   , optRate             :: Maybe Rate
   , optBalanceToday     :: Bool
+  , optPostOnTxns       :: Bool
   , optIgnoreAssertions :: Bool
   }
 
@@ -42,6 +43,7 @@ defaultOptions = Options
   , optDCC              = Nothing
   , optRate             = Nothing
   , optBalanceToday     = False
+  , optPostOnTxns       = False
   , optIgnoreAssertions = False
   }
 
@@ -52,6 +54,7 @@ options =
  , Option ['v'] ["verbose"]           (NoArg (\o -> o { optVerbose = True }))                              "echo input ledger to stdout (default)"
  , Option ['q'] ["quiet"]             (NoArg (\o -> o { optVerbose = False }))                             "don't echo input ledger to stdout"
  , Option []    ["today"]             (NoArg (\o -> o { optBalanceToday = True }))                         "compute interest up until today"
+ , Option []    ["post-on-transactions"] (NoArg (\o -> o { optPostOnTxns = True }))                        "post interest only when the balance changes\n(and with --today), not at the end of\nevery year or rate period"
  , Option ['f'] ["file"]              (ReqArg (\f o -> o { optInput = f : optInput o }) "FILE")            "input ledger file (pass '-' for stdin)\ndefault: $LEDGER_FILE or ~/.hledger.journal"
  , Option ['s'] ["source"]            (ReqArg (\a o -> o { optSourceAcc = a }) "ACCOUNT")                  "interest source account"
  , Option ['t'] ["target"]            (ReqArg (\a o -> o { optTargetAcc = a }) "ACCOUNT")                  "interest target account"
@@ -109,6 +112,7 @@ main = bracket (return ()) (\() -> hFlush stdout >> hFlush stderr) $ \() -> do
             , targetAccount = T.pack (optTargetAcc opts)
             , dayCountConvention = fromJust (optDCC opts)
             , interestRate = fromJust (optRate opts)
+            , postOnTransactions = optPostOnTxns opts
             }
   thisDay <- getCurrentDay
   let finalize

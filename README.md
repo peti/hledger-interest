@@ -25,6 +25,9 @@ running "`hledger-interest --help`":
       -v          --verbose                   echo input ledger to stdout (default)
       -q          --quiet                     don't echo input ledger to stdout
                   --today                     compute interest up until today
+                  --post-on-transactions      post interest only when the balance changes
+                                              (and with --today), not at the end of
+                                              every year or rate period
       -f FILE     --file=FILE                 input ledger file (pass '-' for stdin)
                                               default: $LEDGER_FILE or ~/.hledger.journal
       -s ACCOUNT  --source=ACCOUNT            interest source account
@@ -65,7 +68,7 @@ ends. Both are counted with the selected convention:
   cross a year boundary, which makes this the [Actual/Actual
   ISDA](https://en.wikipedia.org/wiki/Day_count_convention#Actual/Actual_ISDA)
   method. It is also the reason why these rates post interest on
-  December 31st of every year. With `--constant`, a period can span
+  December 31st of every year (see below). With `--constant`, a period can span
   several years and is divided by the length of the year it ends in, so
   the result is only an approximation of Actual/Actual ISDA in that case.
 - `--30-360`, `--30E-360`, and `--30E-360isda` count every month as 30
@@ -75,6 +78,21 @@ ends. Both are counted with the selected convention:
   for details. `--30E-360isda` does not apply the February exception
   for the maturity date, because hledger-interest has no notion of
   maturity.
+
+By default, hledger-interest posts the interest at the end of every
+period: on every transaction date, but also on December 31st and on
+every date at which the rate changes. If the interest is credited to the
+interest-bearing account itself, it compounds from then on. Many loans
+and savings accounts compound less often, though, e.g. only when a
+payment is made. With `--post-on-transactions`, interest is still
+computed separately for every year and rate, but posted only on
+transaction dates (and on the final day with `--today`). Since such a
+posting may cover several rates, its description does not mention a
+rate, e.g. for a rate change from 5% to 7% on 2021-12-20:
+
+    2022-01-10 interest for -9841.10 USD over 31 days
+        Liabilities:Loan       -53.65 USD
+        Expenses:Interest       53.65 USD
 
 ## Examples
 
