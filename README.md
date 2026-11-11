@@ -19,16 +19,19 @@ An overview over the available run-time options can be displayed by
 running "`hledger-interest --help`":
 
     Usage: hledger-interest [OPTION...] ACCOUNT
+    Default: post at transactions, rate-period ends, and year ends.
       -h          --help                      print this message and exit
       -V          --version                   show version number and exit
       -v          --verbose                   echo input ledger to stdout (default)
       -q          --quiet                     don't echo input ledger to stdout
                   --today                     compute interest up until today
-                  --post-on-transactions      post interest only when the balance changes
-                                              (and with --today), not at the end of
-                                              every year or rate period
-                  --no-year-end-posting       skip automatic year-end postings;
-                                              still post at rate changes and transactions
+                  --post-on-transactions      post only at transactions (and with --today);
+                                              skip rate-period and automatic year-end postings;
+                                              overrides --post-on-rate-changes
+                  --post-on-rate-changes      post at transactions and rate-period ends;
+                                              skip automatic year-end postings;
+                                              --post-on-transactions takes precedence;
+                                              --today also posts on the final day
       -f FILE     --file=FILE                 input ledger file (pass '-' for stdin)
                                               default: $LEDGER_FILE or ~/.hledger.journal
       -s ACCOUNT  --source=ACCOUNT            interest source account
@@ -91,10 +94,11 @@ it from the posting date.
 | Posting option | Transactions | Rate-period ends | Year ends |
 |---|---|---|---|
 | Default | Yes | Yes | Yes |
-| `--no-year-end-posting` | Yes | Yes | No |
+| `--post-on-rate-changes` | Yes | Yes | No |
 | `--post-on-transactions` | Yes | No | No |
 
-`--no-year-end-posting` suppresses automatic year-end postings. A transaction
+`--post-on-rate-changes` posts at transactions and rate-period ends, without
+an additional automatic year-end posting. A transaction
 on December 31st or a new rate taking effect on January 1st still causes a
 posting on December 31st. `--post-on-transactions` takes precedence if both
 flags are supplied, regardless of their order. All modes also post on the
@@ -133,7 +137,7 @@ the start of each historical schedule, dates outside the former coverage
 limits, and invalid arguments. The historical BGB288, DB24, and ING-DiBa data live only
 in `tests/HistoricalRates.hs`; tests pass them through `--schedule`
 with explicit day-count flags. These are fixed regression snapshots.
-The DB24 case uses `--no-year-end-posting` and reproduces the original
+The DB24 case uses `--post-on-rate-changes` and reproduces the original
 built-in mode's output exactly. Tests also cover rate aliases and posting
 flag precedence across all four day-count conventions.
 Tests deliberately avoid `--today` so results do not depend on the clock.
@@ -264,7 +268,7 @@ hledger-interest -f loan.ledger --act \
 This applies 5% from January 1, 2023, and 7% from July 1, 2023. Dates
 before the first entry earn zero interest, and the last rate continues
 indefinitely. By default, interest is posted at year ends, rate changes,
-and transaction dates. Use `--no-year-end-posting` or
+and transaction dates. Use `--post-on-rate-changes` or
 `--post-on-transactions` to control posting as explained above.
 `--annual-schedule` remains an alias for `--schedule`. Likewise,
 `--annual` is an alias for `--constant`; both specify a fixed annual rate. The executable contains no bank-specific or statutory

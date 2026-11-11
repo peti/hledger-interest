@@ -11,12 +11,12 @@
   Their historical data now live only in the test suite, which supplies
   them through `--schedule` and explicit day-count flags. Unlike the former
   modes, schedules earn zero interest before the first entry and keep the
-  last rate indefinitely. The DB24 example uses `--no-year-end-posting`
+  last rate indefinitely. The DB24 example uses `--post-on-rate-changes`
   to reproduce its original output.
 - Add `--schedule`, retaining `--annual-schedule` as an alias. Rate selection
   is independent of posting frequency: all rates now post automatically at
   year ends by default, including `--constant` (now equivalent to `--annual`).
-- Add `--no-year-end-posting` to post only at transactions and rate-period
+- Add `--post-on-rate-changes` to post only at transactions and rate-period
   ends. `--post-on-transactions` suppresses both automatic posting boundaries
   and takes precedence when combined with the new flag.
 - Split actual-day calculations at calendar-year boundaries for correct

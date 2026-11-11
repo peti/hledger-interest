@@ -11,7 +11,7 @@ historicalModels :: [(String, [String])]
 historicalModels =
   [ ("bgb288", ["--act", scheduleArgument [(date, base + 5/100) | (date, base) <- basiszinsTable]])
   , ("ing-diba", ["--act", scheduleArgument ingDibaSchedule])
-  , ("db24", ["--30E-360", "--no-year-end-posting", scheduleArgument db24Schedule])
+  , ("db24", ["--30E-360", "--post-on-rate-changes", scheduleArgument db24Schedule])
   ]
 
 scheduleArgument :: [(Day, Decimal)] -> String

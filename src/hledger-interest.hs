@@ -28,7 +28,7 @@ data Options = Options
   , optRate             :: Either String Rate
   , optBalanceToday     :: Bool
   , optPostOnTxns       :: Bool
-  , optPostAtYearEnd    :: Bool
+  , optPostOnRateChanges :: Bool
   , optIgnoreAssertions :: Bool
   }
 
@@ -44,7 +44,7 @@ defaultOptions = Options
   , optRate             = Left "no interest rate specified\n"
   , optBalanceToday     = False
   , optPostOnTxns       = False
-  , optPostAtYearEnd    = True
+  , optPostOnRateChanges = False
   , optIgnoreAssertions = False
   }
 
@@ -55,8 +55,8 @@ options =
  , Option ['v'] ["verbose"]           (NoArg (\o -> o { optVerbose = True }))                              "echo input ledger to stdout (default)"
  , Option ['q'] ["quiet"]             (NoArg (\o -> o { optVerbose = False }))                             "don't echo input ledger to stdout"
  , Option []    ["today"]             (NoArg (\o -> o { optBalanceToday = True }))                         "compute interest up until today"
- , Option []    ["post-on-transactions"] (NoArg (\o -> o { optPostOnTxns = True }))                        "post interest only when the balance changes\n(and with --today), not at the end of\nevery year or rate period"
- , Option []    ["no-year-end-posting"] (NoArg (\o -> o { optPostAtYearEnd = False }))                     "skip automatic year-end postings;\nstill post at rate changes and transactions"
+ , Option []    ["post-on-transactions"] (NoArg (\o -> o { optPostOnTxns = True }))                        "post only at transactions (and with --today);\nskip rate-period and automatic year-end postings;\noverrides --post-on-rate-changes"
+ , Option []    ["post-on-rate-changes"] (NoArg (\o -> o { optPostOnRateChanges = True }))                     "post at transactions and rate-period ends;\nskip automatic year-end postings;\n--post-on-transactions takes precedence;\n--today also posts on the final day"
  , Option ['f'] ["file"]              (ReqArg (\f o -> o { optInput = f : optInput o }) "FILE")            "input ledger file (pass '-' for stdin)\ndefault: $LEDGER_FILE or ~/.hledger.journal"
  , Option ['s'] ["source"]            (ReqArg (\a o -> o { optSourceAcc = a }) "ACCOUNT")                  "interest source account"
  , Option ['t'] ["target"]            (ReqArg (\a o -> o { optTargetAcc = a }) "ACCOUNT")                  "interest target account"
@@ -80,7 +80,7 @@ setRate flag makeRate value opts = opts { optRate = parsed }
 
 usageMessage :: String
 usageMessage = usageInfo header options
-  where header = "Usage: hledger-interest [OPTION...] ACCOUNT"
+  where header = "Usage: hledger-interest [OPTION...] ACCOUNT\nDefault: post at transactions, rate-period ends, and year ends."
 
 commandLineError :: String -> IO a
 commandLineError err = do hPutStrLn stderr (err ++ usageMessage)
@@ -124,7 +124,7 @@ run = do
             , dayCountConvention = dcc
             , interestRate = rate
             , postOnTransactions = optPostOnTxns opts
-            , postAtYearEnd = optPostAtYearEnd opts
+            , postAtYearEnd = not (optPostOnRateChanges opts)
             }
   when (null ts) $ commandLineError ("no transactions found for account " ++ T.unpack interestAcc ++ "\n")
   thisDay <- getCurrentDay

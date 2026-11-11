@@ -76,14 +76,14 @@ main = defaultMain $ testGroup "CLI regression"
           let invoke flags = successfulOutput $ arguments "boundaries" "Liabilities:Loan"
                 "Liabilities:Loan" ([schedule, flag, "--quiet"] ++ flags)
           expected <- invoke ["--post-on-transactions"]
-          invoke ["--post-on-transactions", "--no-year-end-posting"] >>= (@?= expected)
-          invoke ["--no-year-end-posting", "--post-on-transactions"] >>= (@?= expected)
+          invoke ["--post-on-transactions", "--post-on-rate-changes"] >>= (@?= expected)
+          invoke ["--post-on-rate-changes", "--post-on-transactions"] >>= (@?= expected)
       | (convention, flag) <- dayCounts
       ]
   ]
 
 postingModes :: [(String, [String])]
-postingModes = [("default", []), ("no-year-end", ["--no-year-end-posting"]),
+postingModes = [("default", []), ("rate-changes", ["--post-on-rate-changes"]),
                 ("transactions", ["--post-on-transactions"])]
 
 dayCounts :: [(String, String)]
@@ -130,17 +130,18 @@ cases =
   , (convention, flag) <- dayCounts
   ] ++
   [ ("schedule-no-year-end-" ++ convention, "boundaries", principal,
-      [schedule, flag, "--quiet", "--no-year-end-posting"])
+      [schedule, flag, "--quiet", "--post-on-rate-changes"])
   | (convention, flag) <- dayCounts
   ] ++
   [ ("no-year-end-leap-" ++ convention, "leap-crossing", principal,
-      ["--annual=0.05", flag, "--quiet", "--no-year-end-posting"])
+      ["--annual=0.05", flag, "--quiet", "--post-on-rate-changes"])
   | (convention, flag) <- dayCounts
   ] ++
-  [ ("rate-change-at-year-end", "leap-crossing", principal,
-      ["--schedule=[(2023-01-01,0.05),(2024-01-01,0.07)]", "--act", "--quiet", "--no-year-end-posting"])
+  [ ("help", "boundaries", principal, ["--help"])
+  , ("rate-change-at-year-end", "leap-crossing", principal,
+      ["--schedule=[(2023-01-01,0.05),(2024-01-01,0.07)]", "--act", "--quiet", "--post-on-rate-changes"])
   , ("transaction-at-year-end", "year-end-transaction", principal,
-      ["--annual=0.05", "--act", "--quiet", "--no-year-end-posting"])
+      ["--annual=0.05", "--act", "--quiet", "--post-on-rate-changes"])
   , ("schedule-transactions-only", "boundaries", principal,
       [schedule, "--act", "--quiet", "--post-on-transactions"])
   , ("annual-separate-account", "boundaries", "Liabilities:Interest",
