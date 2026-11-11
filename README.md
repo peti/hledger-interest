@@ -7,7 +7,7 @@ hledger-interest
 [![CI Status](https://github.com/peti/hledger-interest/actions/workflows/haskell-ci.yml/badge.svg)](https://github.com/peti/hledger-interest/actions/workflows/haskell-ci.yml)
 
 hledger-interest is a small command-line utility based on [Simon
-Michael's hlegder library](http://hledger.org/). Its purpose is to
+Michael's hledger library](http://hledger.org/). Its purpose is to
 compute interest for a given ledger account. Using command line flags,
 the program can be configured to use various [day counting
 conventions](http://en.wikipedia.org/wiki/Day_count_convention), such as
@@ -19,7 +19,7 @@ support for other schemes is fairly easy, but currently requires hacking
 the source code.
 
 An overview over the available run-time options can be displayed by
-running "`hleder-interest --help`":
+running "`hledger-interest --help`":
 
     Usage: hledger-interest [OPTION...] ACCOUNT
       -v          --verbose                   echo input ledger to stdout (default)
@@ -29,7 +29,8 @@ running "`hleder-interest --help`":
                                               default: $LEDGER_FILE or ~/.hledger.journal
       -s ACCOUNT  --source=ACCOUNT            interest source account
       -t ACCOUNT  --target=ACCOUNT            interest target account
-                  --act                       use 'act' day counting convention
+                  --act                       use 'act/act' day counting convention
+                                              (Actual/Actual ISDA; see README)
                   --30-360                    use '30/360' day counting convention
                   --30E-360                   use '30E/360' day counting convention
                   --30E-360isda               use '30E/360isda' day counting convention
@@ -48,6 +49,32 @@ changing the amount of money that earns interest --, hledger-interest
 transfers the interest that accrued so far. Interest will be debited
 from the account designed by the `--source` flag and credited to the
 account designed by the `--target` flag.
+
+## Day counting conventions
+
+For every period, hledger-interest computes
+
+    interest = balance * rate * days / days-in-year
+
+where `days` is the length of the period, both ends included, and
+`days-in-year` is the length of the calendar year in which the period
+ends. Both are counted with the selected convention:
+
+- `--act` counts actual calendar days, so a year has 365 or 366 days.
+  `--annual`, `--annual-schedule`, and `--bgb288` never let a period
+  cross a year boundary, which makes this the [Actual/Actual
+  ISDA](https://en.wikipedia.org/wiki/Day_count_convention#Actual/Actual_ISDA)
+  method. It is also the reason why these rates post interest on
+  December 31st of every year. With `--constant`, a period can span
+  several years and is divided by the length of the year it ends in, so
+  the result is only an approximation of Actual/Actual ISDA in that case.
+- `--30-360`, `--30E-360`, and `--30E-360isda` count every month as 30
+  days and every year as 360 days. They differ in how they treat the
+  31st and the end of February; see the [Wikipedia
+  article](https://en.wikipedia.org/wiki/Day_count_convention#30/360_methods)
+  for details. `--30E-360isda` does not apply the February exception
+  for the maturity date, because hledger-interest has no notion of
+  maturity.
 
 ## Examples
 
