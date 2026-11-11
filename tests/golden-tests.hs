@@ -1,5 +1,7 @@
 module Main (main) where
 
+import HistoricalRates (historicalModels)
+
 import qualified Data.ByteString.Lazy as B
 import qualified Data.ByteString.Lazy.Char8 as BC
 import System.Exit (ExitCode(..))
@@ -22,17 +24,21 @@ main = defaultMain $ testGroup "CLI regression"
            "Liabilities:Prêt" ["--annual=0.05", "--act"]
        ] ++
        [ goldenCase (model ++ "-first-period") (model ++ "-start")
-           "Liabilities:Loan" "Liabilities:Interest" [flag, "--quiet"]
-       | (model, flag) <- bankModels
+           "Liabilities:Loan" "Liabilities:Interest" (args ++ ["--quiet"])
+       | (model, args) <- historicalModels
+       ] ++
+       [ goldenCase (model ++ "-before-first-rate") "before-coverage"
+           "Liabilities:Loan" "Liabilities:Interest" (args ++ ["--quiet"])
+       | (model, args) <- historicalModels
+       ] ++
+       [ goldenCase (model ++ "-after-last-rate") "after-coverage"
+           "Liabilities:Loan" "Liabilities:Interest" (args ++ ["--quiet"])
+       | (model, args) <- historicalModels
        ])
   , testGroup "errors"
-      ([ failureCase (model ++ "-before-coverage")
-           (arguments "before-coverage" "Liabilities:Loan" "Liabilities:Interest" [flag, "--quiet"])
-           ("hledger-interest: no " ++ label ++ " is known for 2000-01-02")
-       | (model, flag, label) <-
-           [("ing-diba", "--ing-diba", "ING-DiBa interest rate"),
-            ("db24", "--db24", "Deutsche Bank 24 interest rate"),
-            ("bgb288", "--bgb288", "BGB base rate")]
+      ([ failureCase ("removed-" ++ model) ["--" ++ model]
+           ("unrecognized option `--" ++ model ++ "'")
+       | (model, _) <- historicalModels
        ] ++
        [ failureCase ("invalid-" ++ flag)
            (arguments "boundaries" "Liabilities:Loan" "Liabilities:Interest"
@@ -53,9 +59,6 @@ main = defaultMain $ testGroup "CLI regression"
            "invalid value for --annual: bogus"
        ])
   ]
-
-bankModels :: [(String, String)]
-bankModels = [("bgb288", "--bgb288"), ("db24", "--db24"), ("ing-diba", "--ing-diba")]
 
 -- Capture bytes directly, preserving Unicode and avoiding locale-dependent decoding.
 runCLI :: [String] -> IO (ExitCode, B.ByteString, B.ByteString)
@@ -97,9 +100,10 @@ cases =
   , ("annual-verbose", "boundaries", principal, ["--annual=0.05", "--act"])
   , ("zero-rate", "boundaries", principal, ["--annual=0", "--act", "--quiet"])
   , ("negative-rate", "boundaries", principal, ["--annual=-0.01", "--act", "--quiet"])
-  , ("bgb288", "boundaries", principal, ["--bgb288", "--quiet"])
-  , ("db24", "historical", principal, ["--db24", "--quiet"])
-  , ("ing-diba", "historical", principal, ["--ing-diba", "--quiet"])
+  ] ++
+  [ (model, if model == "bgb288" then "boundaries" else "historical", principal,
+      args ++ ["--quiet"])
+  | (model, args) <- historicalModels
   ]
   where
     principal = "Liabilities:Loan"

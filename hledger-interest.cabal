@@ -22,11 +22,9 @@ Description:
  Michael's hledger library. Its purpose is to compute interest for a
  given ledger account. Using command line flags, the program can be
  configured to use various schemes for day-counting, such as act\/act,
- 30\/360, 30E\/360, and 30\/360isda. Furthermore, it supports a (small)
- number of interest schemes, i.e. annual interest with a fixed rate and
- the scheme mandated by the German BGB288 (Basiszins fuer
- Verbrauchergeschaefte). Extending support for other schemes is fairly
- easy, but currently requires changes to the source code.
+ 30\/360, 30E\/360, and 30\/360isda. It supports constant rates,
+ annual interest with a fixed rate, and schedules of annual rates
+ supplied on the command line.
  .
  As an example, consider the loan in the regression fixture
  @tests/fixtures/boundaries.journal@:
@@ -127,9 +125,6 @@ Description:
  >               --annual=RATE               annual interest rate
  >               --annual-schedule=SCHEDULE  schedule of annual interest rates.
  >                                           syntax: '[(Date1,Rate1),(Date2,Rate2),...]'
- >               --bgb288                    compute interest according to German BGB288
- >               --db24                      HACK: Deutsche Bank 24
- >               --ing-diba                  HACK: compute interest according for Ing-Diba Tagesgeld account
 
 Source-Repository head
   Type:                 git
@@ -151,6 +146,7 @@ Test-suite regression
   default-language:    Haskell2010
   hs-source-dirs:      tests
   main-is:             golden-tests.hs
-  build-depends:       base >= 4.9 && < 5, bytestring, typed-process, tasty,
+  other-modules:       HistoricalRates
+  build-depends:       base >= 4.9 && < 5, bytestring, typed-process, Decimal, time, tasty,
                        tasty-golden >= 2.3.6, tasty-hunit
   build-tool-depends:  hledger-interest:hledger-interest

@@ -11,12 +11,9 @@ Michael's hledger library](http://hledger.org/). Its purpose is to
 compute interest for a given ledger account. Using command line flags,
 the program can be configured to use various [day counting
 conventions](http://en.wikipedia.org/wiki/Day_count_convention), such as
-"act/act", "30/360", "30E/360", and "30/360isda". Furthermore, it
-supports several of different interest schemes, i.e. annual interest
-with a fixed rate and the scheme mandated by the German law [§ 288 BGB
-Verzugszinsen](http://de.wikipedia.org/wiki/Verzugszinssatz). Extending
-support for other schemes is fairly easy, but currently requires hacking
-the source code.
+"act/act", "30/360", "30E/360", and "30/360isda". It supports
+constant rates, fixed annual rates, and schedules of annual rates supplied
+on the command line.
 
 An overview over the available run-time options can be displayed by
 running "`hledger-interest --help`":
@@ -41,7 +38,6 @@ running "`hledger-interest --help`":
                   --annual=RATE               annual interest rate
                   --annual-schedule=SCHEDULE  schedule of annual interest rates.
                                               syntax: '[(Date1,Rate1),(Date2,Rate2),...]'
-                  --bgb288                    compute interest according to German BGB288
 
 When run, hledger-interest reads the [ledger
 file](http://hledger.org/MANUAL.html#file-format) designated by the
@@ -69,7 +65,6 @@ where `days` is the length of the period, both ends included, and
 ends. Both are counted with the selected convention:
 
 - `--act` counts actual calendar days, so a year has 365 or 366 days.
-  `--annual`, `--annual-schedule`, and `--bgb288` never let a period
   cross a year boundary, which makes this the [Actual/Actual
   ISDA](https://en.wikipedia.org/wiki/Day_count_convention#Actual/Actual_ISDA)
   method. It is also the reason why these rates post interest on
@@ -112,11 +107,16 @@ and compare stdout bytes exactly with `tests/golden/*.golden`, preserving
 Unicode. Successful commands must exit with empty stderr; error cases
 check the exit status, empty stdout, and the expected diagnostic. Coverage includes all
 four day-count conventions with constant, annual, and scheduled rates;
-the BGB288, DB24, and ING-DiBa models; leap days and month/year ends;
+historical rate schedules; leap days and month/year ends;
 rate changes, same-day payments, compounding versus separate interest
 accounts, deferred posting, zero/negative rates, and verbose output.
 Additional cases cover secondary dates, literal account names, Unicode,
-the start of each historical rate table, and invalid arguments and dates.
+the start of each historical schedule, dates outside the former coverage
+limits, and invalid arguments. The historical BGB288, DB24, and ING-DiBa data live only
+in `tests/HistoricalRates.hs`; tests pass them through `--annual-schedule`
+with explicit day-count flags. These are fixed regression snapshots.
+DB24 now follows annual-schedule behavior, including year-end postings
+that its former built-in mode omitted.
 Tests deliberately avoid `--today` so results do not depend on the clock.
 
 To add a case, add its argument list to `tests/golden-tests.hs` and, if needed,
@@ -231,49 +231,20 @@ Then interest would develop as follows:
         Assets:Bank                     EUR -150.00
         Liabilities:Loan
 
-Last but not least, there is a special case known as "Verzugszinsen" in
-German law, which applies when someone is supposed to pay a bill, but
-fails to do so on time. For every day past the deadline, interest
-accrues according to terms specified in [§ 247
-BGB](http://www.gesetze-im-internet.de/bgb/__247.html). The command line
-flag `--bgb288` enables this scheme in `hledger-interest`.
+## Variable annual rates
 
-Let's assume that customer ACME is supposed to pay 35 Euro by
-2010/09/15, but the money actually arrives almost half a year late:
+Use `--annual-schedule` to supply rates and their effective dates, together
+with an explicit day-count convention. For example:
 
-    2010/09/15 Services rendered to Customer ACME
-        ACME                            1 hour @ EUR 35.00
-        Receivable:ACME
+```sh
+hledger-interest -f loan.ledger --act \
+  '--annual-schedule=[(2023-01-01,0.05),(2023-07-01,0.07)]' \
+  --source=Expenses:Interest --target=Liabilities:Loan Liabilities:Loan
+```
 
-    2011/03/17 ACME
-        ACME                            EUR 35.00
-        Receivable:ACME
-
-According to German law, you are entitled to the following interest:
-
-    $ hledger-interest -f acme.ledger --quiet --bgb288 -s Income:Interest -t Receivable:ACME:Interest Receivable:ACME
-    2010/12/31 5.12% interest for EUR 35.00 over 107 days
-        Receivable:ACME:Interest        EUR 0.53
-        Income:Interest
-
-    2011/03/17 5.12% interest for EUR 35.00 over 76 days
-        Receivable:ACME:Interest        EUR 0.37
-        Income:Interest
-
-So, if you're smart, then you'll book the payment so that the accrued
-interest is paid *first*:
-
-    2011/03/17 ACME
-        ACME                            EUR 35.00
-        Receivable:ACME:Interest        EUR -0.90
-        Receivable:ACME
-
-This gives the following transaction history for the ACME account:
-
-    $ hledger-interest -f acme.ledger --bgb288 -s Income:Interest -t Receivable:ACME:Interest Receivable:ACME |
-      hledger -f - reg Receivable:ACME
-    2010/09/15 Services rendered .. Receivable:ACME           EUR 35.00    EUR 35.00
-    2010/12/31 5.12% interest for.. Re:ACME:Interest           EUR 0.53    EUR 35.53
-    2011/03/17 5.12% interest for.. Re:ACME:Interest           EUR 0.37    EUR 35.90
-    2011/03/17 ACME                 Re:ACME:Interest          EUR -0.90    EUR 35.00
-                                    Receivable:ACME          EUR -34.10     EUR 0.90
+This applies 5% from January 1, 2023, and 7% from July 1, 2023. Dates
+before the first entry earn zero interest, and the last rate continues
+indefinitely. By default, interest is posted at year ends, rate changes,
+and transaction dates. Use `--post-on-transactions` to defer posting as
+explained above. The executable contains no bank-specific or statutory
+rate tables; supply the appropriate schedule yourself.

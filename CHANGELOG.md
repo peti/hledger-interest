@@ -7,9 +7,13 @@
 - Match the full interest account name literally throughout. Punctuation
   is no longer interpreted as a regular expression, subaccounts are excluded,
   and an account with no matching transactions produces an error.
-- Reject dates before the beginning of historical rate tables instead of
-  applying the earliest known rate to them. Skip rate lookup while the
-  balance is zero, including before the first loan.
+- Remove the built-in BGB288, ING-DiBa, and DB24 modes and their flags.
+  Their historical data now live only in the test suite, which supplies
+  them through `--annual-schedule` and explicit day-count flags. Unlike
+  the former modes, schedules earn zero interest before the first entry
+  and keep the last rate indefinitely. DB24 examples now also post at
+  year ends, following the annual-schedule rules.
+- Skip rate lookup while the balance is zero, including before the first loan.
 - Report invalid rate arguments and missing account arguments before
   reading the journal, and display computation errors without exception noise.
 - Preserve Unicode output in golden tests, require existing baselines,

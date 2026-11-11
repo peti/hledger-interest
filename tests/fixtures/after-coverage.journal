@@ -1,0 +1,7 @@
+3000-01-01 Loan after the former built-in coverage limits
+    Assets:Bank  EUR 10000.00
+    Liabilities:Loan
+
+3000-02-01 Payment
+    Assets:Bank  EUR -100.00
+    Liabilities:Loan
