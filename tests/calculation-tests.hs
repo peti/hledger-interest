@@ -68,7 +68,31 @@ main = defaultMain $ testGroup "Independent calculations"
             [(day 2023 3 31, expected)]
       | (name, convention, expected) <-
           [("actual", diffAct, 2304 % 73), ("raw 30/360", diff30_360, 34),
-           ("30E/360", diff30E_360, 33), ("30E/360 ISDA", diff30E_360isda, 31)]
+           ("30E/360", diff30E_360, 33), ("30E/360 ISDA", diff30E_360isda, 33)]
+      ]
+  , testGroup "Periods start after an adjusted day"
+      [ testCase name $ do
+          -- Accrual starts January 31st, which 30E/360 counts as the 30th,
+          -- so the period must be counted from the loan day (issue #29).
+          -- Actual/Actual uses 29 actual days: 360 * 29 / 365 = 2088/73.
+          let cfg = baseConfig { dayCountConvention = convention }
+          assertInterest cfg (compute cfg [(day 2023 1 30, 3600)] (day 2023 2 28))
+            [(day 2023 2 28, expected)]
+      | (name, convention, expected) <-
+          [("actual", diffAct, 2088 % 73), ("raw 30/360", diff30_360, 28),
+           ("30E/360", diff30E_360, 28), ("30E/360 ISDA", diff30E_360isda, 30)]
+      ]
+  , testGroup "Monthly periods add up to a 360-day year"
+      [ testCase name $ do
+          -- Payments on the 30th (February 28th) split a year into twelve
+          -- periods; at 1 per synthetic day they must earn exactly 360.
+          let cfg = baseConfig { dayCountConvention = convention }
+              payments = [(day 2023 m (if m == 2 then 28 else 30), 0) | m <- [1 .. 12]]
+              txns = compute cfg ((day 2022 12 30, 3600) : payments) (day 2023 12 30)
+          sum [aquantity a | t <- txns, p <- tpostings t, paccount p == targetAccount cfg,
+                             a <- amounts (pamount p)] @?= 360
+      | (name, convention) <-
+          [("raw 30/360", diff30_360), ("30E/360", diff30E_360), ("30E/360 ISDA", diff30E_360isda)]
       ]
   , testGroup "Rate changes"
       [ testCase "new rate applies on its effective date" $ do
