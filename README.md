@@ -94,6 +94,37 @@ rate, e.g. for a rate change from 5% to 7% on 2021-12-20:
         Liabilities:Loan       -53.65 USD
         Expenses:Interest       53.65 USD
 
+## Regression tests
+
+Run the golden tests against the Cabal-built executable with:
+
+```sh
+cabal test regression --test-show-details=direct
+```
+
+The cases in `tests/Main.hs` run fixed journals from `tests/fixtures/`
+and compare stdout exactly with `tests/golden/*.golden`. Every command
+must also exit successfully with empty stderr. Coverage includes all
+four day-count conventions with constant, annual, and scheduled rates;
+the BGB288, DB24, and ING-DiBa models; leap days and month/year ends;
+rate changes, same-day payments, compounding versus separate interest
+accounts, deferred posting, zero/negative rates, and verbose output.
+Tests deliberately avoid `--today` so results do not depend on the clock.
+
+To add a case, add its argument list to `tests/Main.hs` and, if needed,
+add a fixture journal. To record or intentionally update expected output:
+
+```sh
+cabal test regression --test-options=--accept
+git diff -- tests/golden
+```
+
+Review new and changed golden files before committing them. They capture
+current behavior, including formatting supplied by `hledger-lib`, rather
+than independently proving the calculations correct. Dependency upgrades
+can therefore require reviewed baseline updates. The fixtures and golden
+files are included in source distributions, and CI runs the suite.
+
 ## Examples
 
 Suppose that you've loaned 1000 Euro from your bank at an annual

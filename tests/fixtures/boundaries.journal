@@ -1,0 +1,35 @@
+2023-01-31 Loan
+    Assets:Bank          EUR 10000.00
+    Liabilities:Loan
+
+2023-02-28 Payment
+    Assets:Bank          EUR -100.00
+    Liabilities:Loan
+
+2023-03-31 Payment
+    Assets:Bank          EUR -100.00
+    Liabilities:Loan
+
+2023-07-01 Payment on rate change
+    Assets:Bank          EUR -100.00
+    Liabilities:Loan
+
+2023-07-01 Second payment on same day
+    Assets:Bank          EUR -50.00
+    Liabilities:Loan
+
+2024-01-15 Payment after year end
+    Assets:Bank          EUR -100.00
+    Liabilities:Loan
+
+2024-02-29 Leap day payment
+    Assets:Bank          EUR -100.00
+    Liabilities:Loan
+
+2024-03-31 Payment
+    Assets:Bank          EUR -100.00
+    Liabilities:Loan
+
+2024-04-01 Unrelated transaction
+    Assets:Bank          EUR -10.00
+    Expenses:Other

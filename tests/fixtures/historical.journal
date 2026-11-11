@@ -1,0 +1,15 @@
+2010-09-01 Loan
+    Assets:Bank          EUR 10000.00
+    Liabilities:Loan
+
+2010-10-01 Payment after DB24 rate change
+    Assets:Bank          EUR -100.00
+    Liabilities:Loan
+
+2011-07-01 Payment
+    Assets:Bank          EUR -100.00
+    Liabilities:Loan
+
+2011-08-01 Payment after ING rate change
+    Assets:Bank          EUR -100.00
+    Liabilities:Loan

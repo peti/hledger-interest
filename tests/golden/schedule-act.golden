@@ -1,0 +1,40 @@
+2023-02-14 0% interest for EUR -10000.00 over 14 days
+    Liabilities:Loan         EUR 0.00
+    Expenses:Interest        EUR 0.00
+
+2023-02-28 5% interest for EUR -10000.00 over 14 days
+    Liabilities:Loan       EUR -19.18
+    Expenses:Interest       EUR 19.18
+
+2023-03-31 5% interest for EUR -9919.18 over 31 days
+    Liabilities:Loan       EUR -42.12
+    Expenses:Interest       EUR 42.12
+
+2023-06-30 5% interest for EUR -9861.30 over 91 days
+    Liabilities:Loan      EUR -122.93
+    Expenses:Interest      EUR 122.93
+
+2023-07-01 7% interest for EUR -9984.23 over 1 days
+    Liabilities:Loan        EUR -1.91
+    Expenses:Interest        EUR 1.91
+
+2023-12-31 7% interest for EUR -9836.14 over 183 days
+    Liabilities:Loan      EUR -345.21
+    Expenses:Interest      EUR 345.21
+
+2024-01-15 7% interest for EUR -10181.35 over 15 days
+    Liabilities:Loan       EUR -29.21
+    Expenses:Interest       EUR 29.21
+
+2024-02-28 7% interest for EUR -10110.56 over 44 days
+    Liabilities:Loan       EUR -85.08
+    Expenses:Interest       EUR 85.08
+
+2024-02-29 3% interest for EUR -10195.64 over 1 days
+    Liabilities:Loan        EUR -0.84
+    Expenses:Interest        EUR 0.84
+
+2024-03-31 3% interest for EUR -10096.48 over 31 days
+    Liabilities:Loan       EUR -25.65
+    Expenses:Interest       EUR 25.65
+
