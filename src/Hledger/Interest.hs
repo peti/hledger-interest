@@ -62,8 +62,11 @@ processTransaction ts = do
   computeInterest (transactionDate2 ts)
   interestAcc <- asks interestAccount
   let posts = [ p | p <- tpostings ts, interestAcc == paccount p ]
-  forM_ posts $ \p ->
-    modify (\st -> st { balance = balance st + pamount p })
+  forM_ posts $ \p -> do
+    -- Costs describe transaction valuation, not principal. Interest accrues
+    -- on the stated amount only.
+    let principal = mapMixedAmount (\a -> a { acost = Nothing, acostbasis = Nothing }) (pamount p)
+    modify (\st -> st { balance = balance st + principal })
 
 -- | Compute and post all interest up to and including the given day.
 computeInterest :: Day -> Computer ()

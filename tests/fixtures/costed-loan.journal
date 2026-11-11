@@ -1,0 +1,5 @@
+# Ensure transaction valuation costs do not carry into generated interest.
+# The EUR principal has a USD unit cost, while accrued interest should remain EUR.
+2023-01-01 Loan
+    Assets:Loan       EUR 3650.00 @ USD 1
+    Equity:Funding    EUR -3650.00 @ USD 1

@@ -21,7 +21,9 @@ main = defaultMain $ testGroup "CLI regression"
       ([ goldenCase name fixture "Liabilities:Loan" target args
        | (name, fixture, target, args) <- cases
        ] ++
-       [ goldenCase "effective-dates" "effective-dates" "Liabilities:Loan"
+       [ goldenCase "costed-loan" "costed-loan" "Assets:Loan" "Assets:Loan"
+           ["--annual=0.1", "--act", "--quiet", "--until=2023-01-11"]
+       , goldenCase "effective-dates" "effective-dates" "Liabilities:Loan"
            "Liabilities:Interest" ["--annual=0.05", "--act", "--quiet"]
        , goldenCase "literal-account" "literal-account" "Liabilities:Loan(1)"
            "Liabilities:Loan(1)" ["--annual=0.05", "--act"]
