@@ -17,6 +17,7 @@ import Control.Monad
 import Control.Monad.RWS
 import Data.Decimal
 import Data.List (sortOn)
+import Data.Maybe (fromMaybe)
 import qualified Data.Text as T
 import Data.Time.Calendar
 import Data.Time.Calendar.OrdinalDate
@@ -66,14 +67,21 @@ processTransaction ts = processTransactionsUntil Nothing [ts]
 processTransactionsUntil :: Maybe Day -> [Transaction] -> Computer ()
 processTransactionsUntil cutoff ts = do
   interestAcc <- asks interestAccount
-  let changes = sortOn (postingDate2 . snd)
-        [ (t, p) | t <- ts, p <- tpostings t, interestAcc == paccount p
-                 , maybe True (postingDate2 p <=) cutoff ]
-  forM_ changes $ \(t, p) -> do
-    let date = postingDate2 p
-        principal = mapMixedAmount (\a -> a { acost = Nothing, acostbasis = Nothing }) (pamount p)
+  let changes = sortOn fst
+        [ (date, p) | t <- ts, p <- tpostings t, interestAcc == paccount p
+                    , let date = balanceChangeDate t p
+                    , maybe True (date <=) cutoff ]
+  forM_ changes $ \(date, p) -> do
+    let principal = mapMixedAmount (\a -> a { acost = Nothing, acostbasis = Nothing }) (pamount p)
     computeInterest date
     modify (\st -> st { balance = balance st + principal })
+
+-- | The effective date of a posting within the given transaction, with the
+-- same precedence as hledger's 'postingDate2': posting date2, transaction
+-- date2, posting date, transaction date. Taking the transaction explicitly
+-- also works for postings whose 'ptransaction' link has not been set.
+balanceChangeDate :: Transaction -> Posting -> Day
+balanceChangeDate t p = fromMaybe (tdate t) (msum [pdate2 p, tdate2 t, pdate p])
 
 -- | Compute and post all interest up to and including the given day.
 computeInterest :: Day -> Computer ()

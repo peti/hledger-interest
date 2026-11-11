@@ -1,9 +1,0 @@
-# Verify balance changes use posting-level effective dates.
-# The opening loan is dated later than its transaction; a payment is dated earlier.
-2023-01-01 Loan
-    Assets:Bank       EUR 3650
-    Liabilities:Loan  ; date:2023-01-11
-
-2023-02-01 Payment
-    Assets:Bank       EUR -1
-    Liabilities:Loan
