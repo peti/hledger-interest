@@ -2,7 +2,7 @@ module Hledger.Interest
   ( Computer, runComputer
   , Config(..), PostingMode(..)
   , InterestState(..), nullInterestState
-  , processTransaction, computeInterest
+  , processTransaction, processTransactionsUntil, computeInterest
   , module Hledger.Interest.DayCountConvention
   , module Hledger.Interest.Rate
   , module Hledger.Data
@@ -16,6 +16,7 @@ import Hledger.Interest.Rate
 import Control.Monad
 import Control.Monad.RWS
 import Data.Decimal
+import Data.List (sortOn)
 import qualified Data.Text as T
 import Data.Time.Calendar
 import Data.Time.Calendar.OrdinalDate
@@ -58,14 +59,20 @@ nullInterestState = InterestState
   }
 
 processTransaction :: Transaction -> Computer ()
-processTransaction ts = do
-  computeInterest (transactionDate2 ts)
+processTransaction ts = processTransactionsUntil Nothing [ts]
+
+-- | Apply matching postings in posting-date order, optionally ignoring
+-- changes after the cutoff date.
+processTransactionsUntil :: Maybe Day -> [Transaction] -> Computer ()
+processTransactionsUntil cutoff ts = do
   interestAcc <- asks interestAccount
-  let posts = [ p | p <- tpostings ts, interestAcc == paccount p ]
-  forM_ posts $ \p -> do
-    -- Costs describe transaction valuation, not principal. Interest accrues
-    -- on the stated amount only.
-    let principal = mapMixedAmount (\a -> a { acost = Nothing, acostbasis = Nothing }) (pamount p)
+  let changes = sortOn (postingDate2 . snd)
+        [ (t, p) | t <- ts, p <- tpostings t, interestAcc == paccount p
+                 , maybe True (postingDate2 p <=) cutoff ]
+  forM_ changes $ \(t, p) -> do
+    let date = postingDate2 p
+        principal = mapMixedAmount (\a -> a { acost = Nothing, acostbasis = Nothing }) (pamount p)
+    computeInterest date
     modify (\st -> st { balance = balance st + principal })
 
 -- | Compute and post all interest up to and including the given day.

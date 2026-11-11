@@ -144,7 +144,7 @@ run = do
             }
   when (null matching) $ commandLineError ("no transactions found for account " ++ T.unpack interestAcc ++ "\n")
   let ts' = runComputer cfg $ do
-        mapM_ processTransaction ts
+        processTransactionsUntil cutoff (jtxns jnl)
         mapM_ computeInterest cutoff
       result
         | optVerbose opts = ts' ++ ts
