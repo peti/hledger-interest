@@ -206,7 +206,7 @@ interest is credited to the main account instead, that behavior changes:
         Expenses:Interest
 
 Of course, loans are supposed to be paid back, and these payments change
-the amount of interest accrued. Suppose that `load.ledger` would be
+the amount of interest accrued. Suppose that `loan.ledger` would be
 extended by the following transactions:
 
     2010/12/11 Payment
